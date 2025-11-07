@@ -2,9 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from mplsoccer import Pitch
-import os
 import numpy as np
-from utilis.load_metrica import load_and_clean_metrica_tracking
+from utils.load_data import load_and_clean_metrica_tracking
 
 try:
     tracking_home = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')

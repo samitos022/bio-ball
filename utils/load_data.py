@@ -19,6 +19,6 @@ def load_and_clean_metrica_tracking(filepath):
     coord_cols = [col for col in df.columns if '_x' in col or '_y' in col]
     df[coord_cols] = df[coord_cols].apply(pd.to_numeric, errors='coerce')
     for col in df.columns:
-        if '_x' in col: df[col] = (df[col]) * PITCH_LENGTH
-        elif '_y' in col: df[col] = (df[col]) * PITCH_WIDTH
+        if '_x' in col: df[col] = df[col] * PITCH_LENGTH
+        elif '_y' in col: df[col] = df[col] * PITCH_WIDTH
     return df
