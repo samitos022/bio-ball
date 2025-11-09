@@ -22,3 +22,8 @@ def load_and_clean_metrica_tracking(filepath):
         if '_x' in col: df[col] = df[col] * PITCH_LENGTH
         elif '_y' in col: df[col] = df[col] * PITCH_WIDTH
     return df
+
+def load_match(filepath):
+    df = pd.read_csv(filepath)
+
+    return df
