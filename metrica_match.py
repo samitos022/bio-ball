@@ -4,13 +4,13 @@ from matplotlib import animation
 from mplsoccer import Pitch
 import numpy as np
 from utils.load_data import load_and_clean_metrica_tracking
-from utils.load_data import load_game
+from utils.load_data import load_match
 
 try:
     tracking_home = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
     tracking_away = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
     print("[SUCCESS] Dati caricati e puliti.")
-    game = load_game('data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
+    game = load_match('data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
 except Exception as e:
     print(f"[ERROR] Impossibile caricare i dati: {e}")
     exit()
