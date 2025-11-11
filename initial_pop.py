@@ -44,30 +44,74 @@ def possessions(match):
 
     return possessions_dict
 
-def get_phase(row, team):
+def get_phase(row, team, period):
     if pd.isna(row["Ball_x"]) or pd.isna(row["Possession"]):
         return None
 
-    if row["Possession"] == team and row["Ball_x"] > 0.5:
-        return "Possesso offensivo"
-    elif row["Possession"] == team and row["Ball_x"] <= 0.5:
-        return "Possesso difensivo"
-    elif not row["Possession"] == team:
-        return "Fase difensiva"
-    else:
-        return None
+    if period == 1:
+        if team == "Home":
+            if row["Possession"] == team and row["Ball_x"] > 0.5:
+                return "Possesso offensivo"
+            elif row["Possession"] == team and row["Ball_x"] <= 0.5:
+                return "Possesso difensivo"
+            else:
+                return "Fase difensiva"
+        elif team == "Away":
+            if row["Possession"] == team and row["Ball_x"] < 0.5:
+                return "Possesso offensivo"
+            elif row["Possession"] == team and row["Ball_x"] >= 0.5:
+                return "Possesso difensivo"
+            else:
+                return "Fase difensiva"
 
-def average_positions(tracking, team, starters_team):
-    tracking["Phase"] = tracking.apply(lambda r: get_phase(r, team), axis=1)
+    elif period == 2:
+        if team == "Home":
+            if row["Possession"] == team and row["Ball_x"] < 0.5:
+                return "Possesso offensivo"
+            elif row["Possession"] == team and row["Ball_x"] >= 0.5:
+                return "Possesso difensivo"
+            else:
+                return "Fase difensiva"
+        elif team == "Away":
+            if row["Possession"] == team and row["Ball_x"] > 0.5:
+                return "Possesso offensivo"
+            elif row["Possession"] == team and row["Ball_x"] <= 0.5:
+                return "Possesso difensivo"
+            else:
+                return "Fase difensiva"
+
+    return None
+
+
+def average_positions(tracking, team, starters_team=None):
+    tracking = tracking.copy()
+
+    tracking["Phase"] = tracking.apply(lambda r: get_phase(r, team, r["Period"]), axis=1)
+
+    if team == "Home":
+        mask = tracking["Period"] == 2
+        for col in tracking.columns:
+            if col.endswith("_x") or col == "Ball_x":
+                tracking.loc[mask, col] = 1 - tracking.loc[mask, col]
+            if col.endswith("_y") or col == "Ball_y":
+                tracking.loc[mask, col] = 1 - tracking.loc[mask, col]
+
+    elif team == "Away":
+        mask = tracking["Period"] == 2
+        for col in tracking.columns:
+            if col.endswith("_x") or col == "Ball_x":
+                tracking.loc[mask, col] = 1 - tracking.loc[mask, col]
+            if col.endswith("_y") or col == "Ball_y":
+                tracking.loc[mask, col] = 1 - tracking.loc[mask, col]
 
     results = {}
+    phases = ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]
 
-    for phase in ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]:
+    for phase in phases:
         phase_df = tracking[tracking["Phase"] == phase]
-
         if phase_df.empty:
             continue
-        
+
         x_cols = [col for col in phase_df.columns if "_x" in col and "Player" in col]
         y_cols = [col for col in phase_df.columns if "_y" in col and "Player" in col]
 
@@ -143,3 +187,10 @@ initial_pop_home = average_positions(tracking_home, 'Home', starters_home)
 initial_pop_away = average_positions(tracking_away, 'Away', starters_away)
 
 plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
+plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
+
+plot_formation(initial_pop_home.get('Possesso difensivo'), 'Possesso difensivo', 'Home')
+plot_formation(initial_pop_away.get('Possesso difensivo'), 'Possesso difensivo', 'Away')
+
+plot_formation(initial_pop_home.get('Fase difensiva'), 'Fase difensiva', 'Home')
+plot_formation(initial_pop_away.get('Fase difensiva'), 'Fase difensiva', 'Away')
