@@ -5,8 +5,7 @@ from mplsoccer import Pitch
 import matplotlib.pyplot as plt
 from utils.load_data import load_and_clean_metrica_tracking
 from utils.load_data import load_match
-from utils.convertion import dict_to_array
-from utils.convertion import array_to_dict
+from optimization.constraints import penalty_total
 
 def possessions(match):
     possessions_dict = {}
@@ -186,6 +185,8 @@ except Exception as e:
 
 initial_pop_home = average_positions(match, tracking_home, 'Home')
 initial_pop_away = average_positions(match, tracking_away, 'Away')
+
+print(penalty_total(initial_pop_home))
 
 plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
 plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
