@@ -1,9 +1,12 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.pyplot as plt
 from utils.load_data import load_and_clean_metrica_tracking
 from utils.load_data import load_match
+from utils.convertion import dict_to_array
+from utils.convertion import array_to_dict
 
 def possessions(match):
     possessions_dict = {}
@@ -82,8 +85,13 @@ def get_phase(row, team, period):
 
     return None
 
+def average_positions(match, tracking, team):
+    possessions_dict = possessions(match) 
 
-def average_positions(tracking, team, starters_team=None):
+    tracking['Possession'] = tracking['Frame'].map(possessions_dict)
+
+    starters_team = starters(tracking)
+
     tracking = tracking.copy()
 
     tracking["Phase"] = tracking.apply(lambda r: get_phase(r, team, r["Period"]), axis=1)
@@ -176,15 +184,8 @@ except Exception as e:
     print(f"[ERROR] Impossibile caricare i dati: {e}")
     exit()
 
-possessions_dict = possessions(match) 
-
-tracking_home['Possession'] = tracking_home['Frame'].map(possessions_dict)
-tracking_away['Possession'] = tracking_away['Frame'].map(possessions_dict)
-
-starters_home = starters(tracking_home)
-starters_away = starters(tracking_away)
-initial_pop_home = average_positions(tracking_home, 'Home', starters_home)
-initial_pop_away = average_positions(tracking_away, 'Away', starters_away)
+initial_pop_home = average_positions(match, tracking_home, 'Home')
+initial_pop_away = average_positions(match, tracking_away, 'Away')
 
 plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
 plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
