@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from utils.load_data import load_and_clean_metrica_tracking
 from utils.load_data import load_match
 from optimization.constraints import penalty_total
+from optimization.objectives import coverage_field_penalty
 
 def possessions(match):
     possessions_dict = {}
@@ -187,6 +188,7 @@ initial_pop_home = average_positions(match, tracking_home, 'Home')
 initial_pop_away = average_positions(match, tracking_away, 'Away')
 
 print(penalty_total(initial_pop_home))
+print(coverage_field_penalty(initial_pop_home))
 
 plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
 plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
