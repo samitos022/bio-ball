@@ -20,6 +20,20 @@ def coverage_field_penalty(positions, w1=1, w2=1, w3=1):
 
     return penalty
 
+def transition_cost(positions, w=1):
+    phases = list(positions.keys())
+    total = 0
+
+    for i in range(len(phases) - 1):
+        for j in range(i+1, len(phases)):
+            p1 = positions[phases[i]][["x","y"]].to_numpy()
+            p2 = positions[phases[j]][["x","y"]].to_numpy()
+
+            diff = np.linalg.norm(p2 - p1, axis=1)
+            total += np.sum(diff ** 2)
+
+    return w * total
+
 def calculate_pitch_control_objective(home_coords, away_coords, ball_pos):
     """
     Calcola il valore aggregato di Pitch Control per la squadra di casa.
