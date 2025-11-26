@@ -226,7 +226,6 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     plt.show()
 
 
-
 def plot_convergence(history):
     """
     Plotta l'andamento del costo (Fitness) durante le generazioni.
@@ -255,7 +254,6 @@ def plot_convergence(history):
     plt.legend(facecolor='#22312b', edgecolor='white', labelcolor='white')
     plt.tight_layout()
     plt.show()
-
 
 
 def prepare_obstacles(avg_positions_dict, phase, starters_list):
