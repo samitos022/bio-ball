@@ -18,7 +18,7 @@ def run_optimization(initial_guess, obstacles, ball_position, player_names):
         'maxiter': 100,
         'popsize': 16,
         'bounds': [0, 1], 
-        'verbose': -1,     # Zittiamo il logger automatico per usare il nostro grafico
+        'verbose': -1,
         'tolfun': 1e-3
     }
 

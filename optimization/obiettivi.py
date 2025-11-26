@@ -66,8 +66,8 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos):
 
     return total_penalty
 
-# --- FUNZIONE PRINCIPALE (WRAPPER) ---
 
+# --- FUNZIONE PRINCIPALE (WRAPPER) ---
 def objective_function(vector, args):
     """Funzione target per CMA-ES."""
     # Unpack degli argomenti passati da run_optimization
