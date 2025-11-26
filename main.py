@@ -16,7 +16,7 @@ def main():
     avg_pos_away_dict = average_positions(match, tracking_away, 'Away')
 
     # SCENARIO
-    ball_position = (0.25, 0.5) # Palla a sinistra
+    ball_position = (0.25, 0.5)
     print(f"Scenario: Palla in {ball_position}")
 
     if ball_position[0] < 0.5:
@@ -26,18 +26,15 @@ def main():
         phase_home = "Possesso offensivo"
         phase_away = "Fase difensiva"
     
-    # Preparazione Ostacoli (Avversari Statici)
     obstacles_array = prepare_obstacles(
         avg_pos_away_dict, 
         phase=phase_away, 
         starters_list=starters_away_list
     )
 
-    # Preparazione Squadra Target (Punto di partenza)
     df_home_start = avg_pos_home_dict[phase_home].loc[starters_home_list]
     initial_guess = df_home_start[['x', 'y']].values.flatten()
 
-    # ESECUZIONE OTTIMIZZAZIONE
     best_solution, cost_history = run_optimization(
         initial_guess=initial_guess,
         obstacles=obstacles_array,
