@@ -3,13 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.pyplot as plt
-from utils.load_data import load_and_clean_metrica_tracking
-from utils.load_data import load_match
-from optimization.constraints import penalty_total
-from optimization.obiettivi import coverage_field_penalty
-from optimization.obiettivi import transition_cost
-from optimization.obiettivi import passing_lanes_penalty  
-from optimization.obiettivi import evaluate
 
 def possessions(match):
     possessions_dict = {}
@@ -177,31 +170,119 @@ def plot_formation(positions, title, team='Home', color='red'):
     ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
     plt.show()
 
-try:
-    tracking_home = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
-    tracking_away = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
-    print("[SUCCESS] Dati caricati e puliti.")
-    match = load_match('data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
-    print("[SUCCESS] Partita caricata.")
-except Exception as e:
-    print(f"[ERROR] Impossibile caricare i dati: {e}")
-    exit()
+def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color='red', ball_position=None, obstacles=None):
+    """
+    Visualizza la formazione sul campo, inclusa la palla e opzionalmente gli avversari.
+    
+    Args:
+        positions (pd.DataFrame): DataFrame con colonne 'x', 'y' (Squadra ottimizzata).
+        title (str): Titolo del grafico.
+        team (str): Nome del team.
+        color (str): Colore dei giocatori.
+        ball_position (tuple, optional): Coordinate (x, y) della palla.
+        obstacles (np.array, optional): Array (N, 2) con le posizioni degli avversari.
+    """
+    # Setup del campo (stile scuro Metrica)
+    pitch = Pitch(pitch_type='metricasports', pitch_length=106, pitch_width=68, 
+                  pitch_color='#22312b', line_color='#c7d5cc')
 
-initial_pop_home = average_positions(match, tracking_home, 'Home')
-initial_pop_away = average_positions(match, tracking_away, 'Away')
+    fig, ax = pitch.draw(figsize=(12, 8))
+    fig.set_facecolor('#22312b')
 
-print(penalty_total(initial_pop_home))
-print(coverage_field_penalty(initial_pop_home))
-print(transition_cost(initial_pop_home))
-print(passing_lanes_penalty(initial_pop_home['Possesso offensivo'], initial_pop_away['Possesso offensivo']))
+    # 1. Plot della Squadra Ottimizzata (Home)
+    if isinstance(positions, dict):
+        xs = [v[0] for v in positions.values()]
+        ys = [v[1] for v in positions.values()]
+        labels = list(positions.keys())
+    else:
+        xs = positions['x']
+        ys = positions['y']
+        labels = positions.index
 
-print(evaluate(initial_pop_home, initial_pop_away))
+    # Disegna i giocatori
+    pitch.scatter(xs, ys, ax=ax, s=200, c=color, edgecolors='white', zorder=3, label=team)
+    
+    # Aggiungi i numeri o nomi (opzionale, per chiarezza)
+    for i, label in enumerate(labels):
+        pitch.annotate(label, (xs[i], ys[i]), ax=ax, fontsize=8, ha='center', va='center', color='white', zorder=4)
 
-plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
-plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
+    # 2. Plot degli Ostacoli (Away/Avversari) - Colore Grigio/Spento
+    if obstacles is not None:
+        obs_x = obstacles[:, 0]
+        obs_y = obstacles[:, 1]
+        pitch.scatter(obs_x, obs_y, ax=ax, s=200, c='#555555', edgecolors='#888888', alpha=0.7, zorder=2, label='Opponent')
 
-plot_formation(initial_pop_home.get('Possesso difensivo'), 'Possesso difensivo', 'Home')
-plot_formation(initial_pop_away.get('Possesso difensivo'), 'Possesso difensivo', 'Away')
+    # 3. Plot della Palla - Colore Giallo brillante
+    if ball_position is not None:
+        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='yellow', edgecolors='black', lw=1.5, zorder=5, label='Ball')
+        # Linea tratteggiata dalla palla al giocatore più vicino (opzionale estetica)
+        # pitch.lines(ball_position[0], ball_position[1], xs[0], ys[0], ax=ax, color='yellow', alpha=0.3, linestyle='--')
 
-plot_formation(initial_pop_home.get('Fase difensiva'), 'Fase difensiva', 'Home')
-plot_formation(initial_pop_away.get('Fase difensiva'), 'Fase difensiva', 'Away')
+    # Legenda e Titoli
+    ax.legend(facecolor='#22312b', edgecolor='white', labelcolor='white', loc='upper right')
+    ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
+    
+    plt.show()
+
+def plot_convergence(history):
+    """
+    Plotta l'andamento del costo (Fitness) durante le generazioni.
+    """
+    plt.figure(figsize=(10, 6))
+    
+    # Stile scuro
+    ax = plt.gca()
+    ax.set_facecolor('#22312b')
+    plt.gcf().set_facecolor('#22312b')
+    
+    # Plot della curva
+    plt.plot(history, color='#00ff85', linewidth=2.5, label='Best Cost per Generation')
+    
+    # Etichette
+    plt.title('Ottimizzazione CMA-ES: Convergenza', color='white', fontsize=16, pad=15)
+    plt.xlabel('Generazioni', color='white', fontsize=12)
+    plt.ylabel('Funzione di Costo (Minimizzazione)', color='white', fontsize=12)
+    
+    # Griglia e assi
+    plt.grid(color='white', alpha=0.1, linestyle='--')
+    plt.tick_params(colors='white')
+    for spine in ax.spines.values():
+        spine.set_color('white')
+
+    plt.legend(facecolor='#22312b', edgecolor='white', labelcolor='white')
+    plt.tight_layout()
+    plt.show()
+
+def prepare_obstacles(avg_positions_dict, phase, starters_list):
+    """
+    Estrae le posizioni degli ostacoli (avversari) per la fase specificata.
+    
+    Args:
+        avg_positions_dict (dict): Dizionario delle posizioni medie (output di average_positions).
+        phase (str): La fase in cui si trova l'avversario (es. "Fase difensiva").
+        starters_list (list): Lista dei nomi dei titolari per garantire l'ordine.
+        
+    Returns:
+        np.array: Matrice (11, 2) con le coordinate [x, y] degli avversari.
+    """
+    # 1. Recupera il DataFrame della fase corretta
+    # Esempio: avg_positions_dict["Fase difensiva"]
+    if phase not in avg_positions_dict:
+        raise ValueError(f"Fase '{phase}' non trovata nei dati avversari.")
+    
+    df_obstacles = avg_positions_dict[phase]
+    
+    # 2. Filtra e ordina in base alla lista dei titolari
+    # Questo assicura che abbiamo esattamente 11 punti e sappiamo chi sono (opzionale, ma pulito)
+    # Se un giocatore manca nei dati di quella fase, pandas metterà NaN -> bisogna gestirlo
+    df_obstacles = df_obstacles.reindex(starters_list).dropna()
+    
+    # Check di sicurezza: se mancano dati, avvisiamo
+    if len(df_obstacles) < 11:
+        print(f"Attenzione: Trovati solo {len(df_obstacles)} ostacoli su 11 richiesti nella fase {phase}.")
+
+    # 3. Conversione in Numpy Array per velocità
+    # Output shape: (N_players, 2)
+    obstacles_matrix = df_obstacles[['x', 'y']].values
+    
+    return obstacles_matrix

@@ -28,3 +28,13 @@ def array_to_dict(vector, player_order, phases=["Possesso offensivo", "Possesso 
         positions[phase] = df
 
     return positions
+
+
+def formation_to_flat(df_formation):
+    return df_formation[['x', 'y']].values.flatten()
+
+def flat_to_formation(vector, player_names):
+    coords_matrix = vector.reshape(-1, 2)
+    df = pd.DataFrame(coords_matrix, columns=['x', 'y'], index=player_names)
+    
+    return df
