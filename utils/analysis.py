@@ -170,7 +170,6 @@ def plot_formation(positions, title, team='Home', color='red'):
     ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
     plt.show()
 
-
 def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color='red', ball_position=None, obstacles=None):
     """
     Visualizza la formazione sul campo, inclusa la palla e opzionalmente gli avversari.
@@ -225,7 +224,6 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     
     plt.show()
 
-
 def plot_convergence(history):
     """
     Plotta l'andamento del costo (Fitness) durante le generazioni.
@@ -254,7 +252,6 @@ def plot_convergence(history):
     plt.legend(facecolor='#22312b', edgecolor='white', labelcolor='white')
     plt.tight_layout()
     plt.show()
-
 
 def prepare_obstacles(avg_positions_dict, phase, starters_list):
     """

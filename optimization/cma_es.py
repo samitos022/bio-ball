@@ -1,7 +1,7 @@
 import cma
 import numpy as np
 from utils.conversion import flat_to_formation
-from optimization.obiettivi import objective_function 
+from optimization.objectives import objective_function 
 
 def run_optimization(initial_guess, obstacles, ball_position, player_names):
     """

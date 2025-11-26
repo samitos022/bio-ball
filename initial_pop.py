@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from utils.load_data import load_and_clean_metrica_tracking
 from utils.load_data import load_match
 from optimization.constraints import penalty_total
-from optimization.objectives import coverage_field_penalty
-from optimization.objectives import transition_cost
-from optimization.objectives import passing_lanes_penalty  
-from optimization.objectives import evaluate
+from optimization.obiettivi import coverage_field_penalty
+from optimization.obiettivi import transition_cost
+from optimization.obiettivi import passing_lanes_penalty  
+from optimization.obiettivi import evaluate
 
 def possessions(match):
     possessions_dict = {}

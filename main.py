@@ -16,7 +16,7 @@ def main():
     avg_pos_away_dict = average_positions(match, tracking_away, 'Away')
 
     # SCENARIO
-    ball_position = (0.72, 0.5) # Palla a sinistra
+    ball_position = (0.25, 0.5) # Palla a sinistra
     print(f"Scenario: Palla in {ball_position}")
 
     if ball_position[0] < 0.5:

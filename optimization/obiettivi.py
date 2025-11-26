@@ -1,149 +1,122 @@
 import numpy as np
-import pandas as pd
 from scipy.spatial import ConvexHull
-from utils.conversion import flat_to_formation
+from constraints import penalty_total
 
-def penalty_total(positions, field_limits=(1.0, 1.0), min_dist=0.05, 
-                  transition_weight=1.0, boundary_weight=5.0, proximity_weight=2.0):
-    penalty = 0.0
-    phases = list(positions.keys())
+def coverage_field(players):
+    points = players[["x", "y"]].to_numpy() 
 
-    # A. Penalità Confini e Prossimità (Collisioni)
-    for phase_name, df in positions.items():
-        pos = df[["x", "y"]].to_numpy()
+    if len(points) < 3:
+        return 0
 
-        # Boundaries
-        out_of_bounds_x = np.sum((pos[:, 0] < 0) | (pos[:, 0] > field_limits[0]))
-        out_of_bounds_y = np.sum((pos[:, 1] < 0) | (pos[:, 1] > field_limits[1]))
-        penalty += boundary_weight * (out_of_bounds_x + out_of_bounds_y)
+    area = ConvexHull(points).volume
 
-        n_players = len(pos)
-        
-        # Proximity (Collisioni tra giocatori)
-        for i in range(n_players):
-            for j in range(i + 1, n_players):
-                dist = np.linalg.norm(pos[i] - pos[j])
-                if dist < min_dist:
-                    penalty += proximity_weight * (min_dist - dist) ** 2
+    return area
 
-    # B. Penalità Transizione (Movimento rispetto alla fase precedente)
-    for i in range(len(phases) - 1):
-        df1 = positions[phases[i]]
-        df2 = positions[phases[i + 1]]
+def coverage_field_penalty(positions, w1=1, w2=1, w3=1):
+    coverage_offensive = coverage_field(positions["Possesso offensivo"])
+    coverage_difensive = coverage_field(positions["Possesso difensivo"])
+    coverage_pure_difensive = coverage_field(positions["Fase difensiva"])
 
-        common_players = df1.index.intersection(df2.index)
-        p1 = df1.loc[common_players, ["x", "y"]].to_numpy()
-        p2 = df2.loc[common_players, ["x", "y"]].to_numpy()
-
-        diffs = np.linalg.norm(p2 - p1, axis=1)
-        penalty += transition_weight * np.sum(diffs ** 2)
+    penalty = w1 * (1 - coverage_offensive) + w2 * (1 - coverage_difensive) + w3 * (1 - coverage_pure_difensive)
 
     return penalty
 
+def transition_cost(positions, w=1):
+    phases = list(positions.keys())
+    total = 0
+
+    for i in range(len(phases) - 1):
+        for j in range(i+1, len(phases)):
+            p1 = positions[phases[i]][["x","y"]].to_numpy()
+            p2 = positions[phases[j]][["x","y"]].to_numpy()
+
+            diff = np.linalg.norm(p2 - p1, axis=1)
+            total += np.sum(diff ** 2)
+
+    return w * total
 
 def point_line_distance(point, a, b):
-    a, b, p = np.array(a), np.array(b), np.array(point)
-    if np.all(a == b): return np.linalg.norm(p - a)
+    a = np.array(a)
+    b = np.array(b)
+    p = np.array(point)
+
+    if np.all(a == b):
+        return np.linalg.norm(p - a)
+
     t = np.dot(p - a, b - a) / np.dot(b - a, b - a)
     t = np.clip(t, 0, 1)
-    return np.linalg.norm(p - (a + t * (b - a)))
+    projection = a + t * (b - a)
+    return np.linalg.norm(p - projection)
 
 def angle_score(p_i, p_j, team_direction=np.array([1.0, 0.0])):
     v = p_j - p_i
-    norm = np.linalg.norm(v)
-    if norm == 0: return 0.0
-    return (np.dot(v/norm, team_direction) + 1) / 2
+    norm_v = np.linalg.norm(v)
+    if norm_v == 0:
+        return 0.0
+        
+    v = v / norm_v
+    cosang = np.dot(v, team_direction)
 
-def cost_coverage(df):
-    points = df[['x', 'y']].values
-    if len(points) < 3: return 1.0
-    try:
-        return 1.0 - ConvexHull(points).volume
-    except:
-        return 1.0
+    return (cosang + 1) / 2
 
-def cost_passing_lanes(df_home, obstacles_array, block_threshold=0.03):
-    home = df_home[['x', 'y']].values
+def passing_lanes_penalty(positions_home, positions_away, block_threshold=0.05, weight_block=5.0, weight_distance=0.5, weight_angle=0.5):
+    home = positions_home[["x", "y"]].to_numpy()
+    away = positions_away[["x", "y"]].to_numpy()
+
     n = len(home)
     penalty = 0.0
-    
-    w_block = 5.0      # Peso linea bloccata
-    w_long_pass = 1.0  # Peso passaggi troppo lunghi
-    max_pass_len = 0.4 # Oltre 40 metri iniziamo a penalizzare
-    
+
     for i in range(n):
         for j in range(n):
-            if i == j: continue
-            p1, p2 = home[i], home[j]
-            
-            dist = np.linalg.norm(p1 - p2)
-            
-            dist_penalty = 0.0
-            if dist > max_pass_len:
-                dist_penalty = w_long_pass * (dist - max_pass_len)**2
-            
-            # Angolo (preferiamo sempre passaggi in avanti/aperti)
-            # Nota: riduciamo un po' l'impatto dell'angolo per evitare distorsioni
-            angle_pen = 0.2 * (1 - angle_score(p1, p2))
+            if i == j:
+                continue
 
-            # Blocco Ostacoli
-            block = False
-            if dist > 0.01: 
-                for opp in obstacles_array:
-                    if point_line_distance(opp, p1, p2) < block_threshold:
-                        block = True
-                        break
-            
-            penalty += dist_penalty + angle_pen + (w_block if block else 0.0)
-            
+            p_i = home[i]
+            p_j = home[j]
+
+            dist = np.linalg.norm(p_j - p_i)
+            dist_penalty = weight_distance * dist
+
+            ang_bonus = angle_score(p_i, p_j)
+            ang_penalty = weight_angle * (1 - ang_bonus)
+
+            blocked = False
+            for opp in away:
+                d = point_line_distance(opp, p_i, p_j)
+                if d < block_threshold:
+                    blocked = True
+                    break
+
+            block_penalty = weight_block if blocked else 0.0
+
+            penalty += dist_penalty + ang_penalty + block_penalty
+
     return penalty
 
-def cost_ball_support(df, ball_pos):
-    """Penalità se nessuno supporta la palla (troppo lontani)."""
-    dists = np.linalg.norm(df[['x', 'y']].values - ball_pos, axis=1)
-    # Penalizza la distanza del giocatore più vicino alla palla
-    return np.min(dists) * 5.0
+def evaluate(positions_home, positions_away, w_coverage=1.0, w_transition=1.0, w_passing_off=1.0, w_passing_def=0.7, w_passing_pure_def=0.4):
+    coverage_pen = coverage_field_penalty(positions_home)
 
-# =============================================================================
-# 3. FUNZIONE OBIETTIVO (Wrapper per CMA-ES)
-# =============================================================================
+    transition_pen = transition_cost(positions_home)
 
-def objective_function(vector, args):
-    player_names, obstacles_array, ball_pos, initial_df_ref = args
-    
-    # 1. Decoding
-    df_candidate = flat_to_formation(vector, player_names)
-    
-    # 2. Constraints (Collega)
-    pos_dict_for_penalty = {
-        "Start": initial_df_ref, 
-        "Candidate": df_candidate
-    }
-    
-    c_constraints = penalty_total(
-        pos_dict_for_penalty,
-        field_limits=(1.0, 1.0),
-        min_dist=0.06,
-        boundary_weight=1000.0, 
-        transition_weight=1.0,
-        proximity_weight=500.0
+    passing_off = passing_lanes_penalty(
+        positions_home["Possesso offensivo"],
+        positions_away["Possesso offensivo"],
     )
-    
-    if c_constraints > 5000: return c_constraints
 
-    c_cover = cost_coverage(df_candidate)
-    c_pass = cost_passing_lanes(df_candidate, obstacles_array)
-    c_ball = cost_ball_support(df_candidate, ball_pos)
+    passing_def = passing_lanes_penalty(
+        positions_home["Possesso difensivo"],
+        positions_away["Possesso difensivo"],
+    )
+
+    passing_pure_def = passing_lanes_penalty(
+        positions_home["Fase difensiva"],
+        positions_away["Fase difensiva"],
+    )
+
+    total_passing_pen = (w_passing_off * passing_off + w_passing_def * passing_def + w_passing_pure_def * passing_pure_def)
     
-    # 4. Pesi
-    w_constraints = 1.0 
-    w_cover = 7.0       
-    w_pass = 1.0  
-    w_ball = 2.0         
+    constraints_pen = penalty_total(positions_home)
     
-    total_cost = (c_constraints * w_constraints) + \
-                 (c_cover * w_cover) + \
-                 (c_pass * w_pass) + \
-                 (c_ball * w_ball)
-                 
-    return total_cost
+    penalty = w_coverage * coverage_pen + w_transition * transition_pen + total_passing_pen + constraints_pen
+
+    return penalty
