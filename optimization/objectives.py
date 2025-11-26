@@ -87,7 +87,7 @@ def cost_passing_lanes(df_home, obstacles_array, block_threshold=0.03):
     return penalty
 
 def cost_ball_support(df, ball_pos):
-    """Penalità se nessuno supporta la palla (troppo lontani)."""
+    """Penalità se nessuno è vicino alla palla"""
     dists = np.linalg.norm(df[['x', 'y']].values - ball_pos, axis=1)
     # Penalizza la distanza del giocatore più vicino alla palla
     return np.min(dists) * 5.0
