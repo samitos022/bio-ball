@@ -49,41 +49,51 @@ def cost_offside(df_home, obstacles_array, ball_pos, attacking_direction='right'
 
     return 0.0
 
-
-def cost_passing_lanes(df_home, obstacles_array, block_threshold=0.03):
+def cost_passing_lanes(df_home, obstacles_array, ball_pos, block_threshold=0.03):
     home = df_home[['x', 'y']].values
     n = len(home)
-    penalty = 0.0
-    
-    w_block = 5.0      # Peso linea bloccata
-    w_long_pass = 1.0  # Peso passaggi troppo lunghi
-    max_pass_len = 0.4 # Oltre 40 metri iniziamo a penalizzare
-    
-    for i in range(n):
-        for j in range(n):
-            if i == j: continue
-            p1, p2 = home[i], home[j]
-            
-            dist = np.linalg.norm(p1 - p2)
-            
-            dist_penalty = 0.0
-            if dist > max_pass_len:
-                dist_penalty = w_long_pass * (dist - max_pass_len)**2
-            
-            # Angolo (preferiamo sempre passaggi in avanti/aperti)
-            # Nota: riduciamo un po' l'impatto dell'angolo per evitare distorsioni
-            angle_pen = 0.2 * (1 - angle_score(p1, p2))
 
-            # Blocco Ostacoli
-            block = False
-            if dist > 0.01: 
-                for opp in obstacles_array:
-                    if point_line_distance(opp, p1, p2) < block_threshold:
-                        block = True
-                        break
-            
-            penalty += dist_penalty + angle_pen + (w_block if block else 0.0)
-            
+    dists = np.linalg.norm(home - ball_pos, axis=1)
+    ball_carrier = np.argmin(dists) # indice del passatore
+    p1 = home[ball_carrier]
+
+    penalty = 0.0
+
+    w_block = 8.0        # passaggio bloccato = molto penalizzante
+    w_long = 1.5         # passaggi lunghi
+    w_angle = 0.5        # angolo
+    max_pass_len = 0.35  # oltre ~35 metri penalizzo
+
+    for j in range(n):
+        if j == ball_carrier:
+            continue
+
+        p2 = home[j]
+        dist = np.linalg.norm(p1 - p2)
+
+        # Penalità sulla lunghezza
+        long_pen = 0.0
+        if dist > max_pass_len:
+            long_pen = w_long * (dist - max_pass_len)**2
+
+        # Penalità angolo
+        ang_pen = w_angle * (1 - angle_score(p1, p2))
+
+        # Penalità blocchi
+        block = False
+        for opp in obstacles_array:
+            if point_line_distance(opp, p1, p2) < block_threshold:
+                block = True
+                break
+
+        block_pen = w_block if block else 0.0
+
+        penalty += long_pen + ang_pen + block_pen
+
+    # Se nessun passaggio è “buono” → penalità extra
+    if penalty == 0:
+        penalty += 10.0
+
     return penalty
 
 def cost_ball_support(df, ball_pos):
@@ -92,39 +102,37 @@ def cost_ball_support(df, ball_pos):
     # Penalizza la distanza del giocatore più vicino alla palla
     return np.min(dists) * 5.0
 
-
 def objective_function(vector, args):
     player_names, obstacles_array, ball_pos, initial_df_ref = args
-    
-    # 1. Decoding
+
     df_candidate = flat_to_formation(vector, player_names)
-    
-    # 2. Constraints
-    pos_dict_for_penalty = {
-        "Start": initial_df_ref, 
+
+    pos_dict_for_constraints = {
+        "Start": initial_df_ref,
         "Candidate": df_candidate
     }
-    
-    c_constraints = penalty_total(pos_dict_for_penalty)
-    
-    if c_constraints > 5000: return c_constraints
+    c_constraints = penalty_total(pos_dict_for_constraints)
 
-    c_cover = cost_coverage(df_candidate)
-    c_pass = cost_passing_lanes(df_candidate, obstacles_array)
-    c_ball = cost_ball_support(df_candidate, ball_pos)
-    c_offside = cost_offside(df_candidate, obstacles_array, ball_pos)
-    
-    # 4. Pesi
-    w_constraints = 1.0 
-    w_cover = 1.0       
-    w_pass = 1.0  
-    w_ball = 20.0  
-    w_offside = 100.0       
-    
-    total_cost = (c_constraints * w_constraints) + \
-                 (c_cover * w_cover) + \
-                 (c_pass * w_pass) + \
-                 (c_ball * w_ball) + \
-                 (c_offside * w_offside)
-                 
+    if c_constraints > 5000:
+        return c_constraints
+
+    c_cover    = cost_coverage(df_candidate)
+    c_pass     = cost_passing_lanes(df_candidate, obstacles_array, ball_pos)
+    c_ball     = cost_ball_support(df_candidate, ball_pos)
+    c_offside  = cost_offside(df_candidate, obstacles_array, ball_pos)
+
+    w_constraints = 1.0
+    w_cover       = 1.0
+    w_pass        = 1.0
+    w_ball        = 20.0
+    w_offside     = 100.0
+
+    total_cost = (
+        w_constraints * c_constraints +
+        w_cover       * c_cover +
+        w_pass        * c_pass +
+        w_ball        * c_ball +
+        w_offside     * c_offside
+    )
+
     return total_cost

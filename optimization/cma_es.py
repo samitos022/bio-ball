@@ -1,5 +1,6 @@
 import cma
 import numpy as np
+from utils.animation import save_generation_plot
 from utils.conversion import flat_to_formation
 from optimization.objectives import objective_function 
 
@@ -44,6 +45,20 @@ def run_optimization(initial_guess, obstacles, ball_position, player_names):
         current_best = min(fitness_values)
         cost_history.append(current_best)
         
+        idx_best = np.argmin(fitness_values)
+        best_vector_gen = solutions[idx_best]
+        best_cost_gen = fitness_values[idx_best]
+
+        cost_history.append(best_cost_gen)
+
+        save_generation_plot(
+            best_vector_gen,
+            player_names,
+            obstacles,
+            ball_position,
+            es.countiter
+        )
+
         # Log opzionale in console ogni 10 generazioni
         if es.countiter % 10 == 0:
             print(f"Gen {es.countiter}: Costo {current_best:.4f}")

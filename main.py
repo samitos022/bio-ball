@@ -1,3 +1,5 @@
+from initial_pop import average_ball_positions
+from utils.animation import create_evolution_gif
 from utils.load_data import load_and_clean_metrica_tracking, load_match
 from utils.analysis import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
 from optimization.cma_es import run_optimization
@@ -15,17 +17,17 @@ def main():
     avg_pos_home_dict = average_positions(match, tracking_home, 'Home')
     avg_pos_away_dict = average_positions(match, tracking_away, 'Away')
 
-    # SCENARIO
-    ball_position = (0.25, 0.5)
-    print(f"Scenario: Palla in {ball_position}")
+    print("Calcolo posizioni della palla per fase...")
+    ball_home_dict = average_ball_positions(tracking_home, 'Home')
+    ball_away_dict = average_ball_positions(tracking_away, 'Away')
 
-    if ball_position[0] < 0.5:
-        phase_home = "Possesso difensivo"
-        phase_away = "Fase difensiva"
-    else:
-        phase_home = "Possesso offensivo"
-        phase_away = "Fase difensiva"
-    
+    # SCENARIO → usa la palla media della fase
+    phase_home = "Possesso offensivo"  # oppure determinato dal tuo engine
+    phase_away = "Fase difensiva"
+
+    ball_position = ball_home_dict[phase_home] 
+    print(f"Palla media nella fase {phase_home}: {ball_position}")
+
     obstacles_array = prepare_obstacles(
         avg_pos_away_dict, 
         phase=phase_away, 
@@ -48,3 +50,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    create_evolution_gif()
