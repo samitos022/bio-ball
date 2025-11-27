@@ -1,4 +1,5 @@
 from initial_pop import average_ball_positions
+from utils.animation import create_evolution_gif
 from utils.load_data import load_and_clean_metrica_tracking, load_match
 from utils.analysis import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
 from optimization.cma_es import run_optimization
@@ -49,3 +50,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    create_evolution_gif()
