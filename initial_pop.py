@@ -5,11 +5,6 @@ from mplsoccer import Pitch
 import matplotlib.pyplot as plt
 from utils.load_data import load_and_clean_metrica_tracking
 from utils.load_data import load_match
-from optimization.constraints import penalty_total
-from optimization.obiettivi import coverage_field_penalty
-from optimization.obiettivi import transition_cost
-from optimization.obiettivi import passing_lanes_penalty  
-from optimization.obiettivi import evaluate
 
 def possessions(match):
     possessions_dict = {}
@@ -141,6 +136,24 @@ def average_positions(match, tracking, team):
 
     return results
 
+def average_ball_positions(tracking, team):
+    tracking["Phase"] = tracking.apply(lambda r: get_phase(r, team, r["Period"]), axis=1)
+
+    results = {}
+
+    for phase in ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]:
+        phase_df = tracking[tracking["Phase"] == phase]
+
+        if phase_df.empty:
+            continue
+
+        ball_x = phase_df["Ball_x"].mean()
+        ball_y = phase_df["Ball_y"].mean()
+
+        results[phase] = np.array([ball_x, ball_y])
+
+    return results
+
 def starters(tracking, n_players=11):
     player_cols = [col for col in tracking.columns if '_x' in col]
 
@@ -186,22 +199,3 @@ try:
 except Exception as e:
     print(f"[ERROR] Impossibile caricare i dati: {e}")
     exit()
-
-initial_pop_home = average_positions(match, tracking_home, 'Home')
-initial_pop_away = average_positions(match, tracking_away, 'Away')
-
-print(penalty_total(initial_pop_home))
-print(coverage_field_penalty(initial_pop_home))
-print(transition_cost(initial_pop_home))
-print(passing_lanes_penalty(initial_pop_home['Possesso offensivo'], initial_pop_away['Possesso offensivo']))
-
-print(evaluate(initial_pop_home, initial_pop_away))
-
-plot_formation(initial_pop_home.get('Possesso offensivo'), 'Possesso offensivo', 'Home')
-plot_formation(initial_pop_away.get('Possesso offensivo'), 'Possesso offensivo', 'Away')
-
-plot_formation(initial_pop_home.get('Possesso difensivo'), 'Possesso difensivo', 'Home')
-plot_formation(initial_pop_away.get('Possesso difensivo'), 'Possesso difensivo', 'Away')
-
-plot_formation(initial_pop_home.get('Fase difensiva'), 'Fase difensiva', 'Home')
-plot_formation(initial_pop_away.get('Fase difensiva'), 'Fase difensiva', 'Away')
