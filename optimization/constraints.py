@@ -1,14 +1,16 @@
 import numpy as np
+import config
 
-def penalty_total(positions, field_limits=(1.0, 1.0), 
-                  min_dist=0.08,
-                  transition_weight=1.0, 
-                  boundary_weight=1000.0,
-                  proximity_weight=500.0,
-                  order_weight=10.0):
+def penalty_total(positions, 
+                  field_limits=config.FIELD_LIMITS, 
+                  min_dist=config.MIN_DIST_PLAYER,
+                  transition_weight=config.PENALTY_W_TRANSITION, 
+                  boundary_weight=config.PENALTY_W_BOUNDARY,
+                  proximity_weight=config.PENALTY_W_PROXIMITY,
+                  order_weight=config.PENALTY_W_ORDER):
     
     penalty = 0.0
-    phases = list(positions.keys()) # ["Start", "Candidate"]
+    phases = list(positions.keys()) 
 
     df_ref = positions[phases[0]]
     ref_x = df_ref["x"].values
@@ -26,28 +28,23 @@ def penalty_total(positions, field_limits=(1.0, 1.0),
 
         n_players = len(pos)
         
-        # 2. PROXIMITY & ORDER (Loop sui giocatori)
+        # 2. PROXIMITY & ORDER
         for i in range(n_players):
             for j in range(i + 1, n_players):
-                
                 # A. Collisioni
                 dist = np.linalg.norm(pos[i] - pos[j])
                 if dist < min_dist:
                     penalty += proximity_weight * (min_dist - dist) ** 2
 
-                # B. Mantenimento Ordine Relativo
-                # Solo per la fase candidata
+                # B. Ordine Relativo (solo candidata)
                 if phase_name != phases[0]:
-                    
-                    # Controllo Longitudinale (Difensori restano dietro Attaccanti)
                     if ref_x[i] < ref_x[j] and current_x[i] > current_x[j]:
                          penalty += order_weight * (current_x[i] - current_x[j])
                     
-                    # Controllo Laterale (Sinistra resta a Sinistra)
                     if ref_y[i] < ref_y[j] - 0.1 and current_y[i] > current_y[j]:
                          penalty += order_weight * (current_y[i] - current_y[j])
 
-    # 3. TRANSITION (Ancoraggio alla posizione precedente)
+    # 3. TRANSITION
     for i in range(len(phases) - 1):
         df1 = positions[phases[i]]
         df2 = positions[phases[i + 1]]

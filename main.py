@@ -19,10 +19,8 @@ def main():
 
     print("Calcolo posizioni della palla per fase...")
     ball_home_dict = average_ball_positions(tracking_home, 'Home')
-    ball_away_dict = average_ball_positions(tracking_away, 'Away')
-
-    # SCENARIO → usa la palla media della fase
-    phase_home = "Possesso offensivo"  # oppure determinato dal tuo engine
+    
+    phase_home = "Possesso offensivo"
     phase_away = "Fase difensiva"
 
     ball_position = ball_home_dict[phase_home] 
