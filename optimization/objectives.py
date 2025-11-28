@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
 from utils.conversion import flat_to_formation
-from optimization.constraints import penalty_total
+import config 
+from optimization.constraints import penalty_total 
 
 def point_line_distance(point, a, b):
     a, b, p = np.array(a), np.array(b), np.array(point)
@@ -25,15 +26,13 @@ def cost_coverage(df):
     except:
         return 1.0
   
-def cost_offside(df_home, obstacles_array, ball_pos, attacking_direction='right'):
+def cost_offside(df_home, obstacles_array, ball_pos, attacking_direction=config.OFFSIDE_ATTACK_DIR):
     home_x = df_home['x'].values
     opp_x = obstacles_array[:, 0]
     
     if attacking_direction == 'right':
         sorted_opp = np.sort(opp_x)
         offside_line = sorted_opp[-2] 
-        
-        # (Usiamo la palla perché se la palla è oltre la linea, non c'è fuorigioco)
         mask_offside = (home_x > offside_line) & (home_x > ball_pos[0])
         
         if np.any(mask_offside):
@@ -49,20 +48,21 @@ def cost_offside(df_home, obstacles_array, ball_pos, attacking_direction='right'
 
     return 0.0
 
-def cost_passing_lanes(df_home, obstacles_array, ball_pos, block_threshold=0.03):
+def cost_passing_lanes(df_home, obstacles_array, ball_pos, block_threshold=config.PASS_BLOCK_THRESHOLD):
     home = df_home[['x', 'y']].values
     n = len(home)
 
     dists = np.linalg.norm(home - ball_pos, axis=1)
-    ball_carrier = np.argmin(dists) # indice del passatore
+    ball_carrier = np.argmin(dists) 
     p1 = home[ball_carrier]
 
     penalty = 0.0
 
-    w_block = 8.0        # passaggio bloccato = molto penalizzante
-    w_long = 1.5         # passaggi lunghi
-    w_angle = 0.5        # angolo
-    max_pass_len = 0.35  # oltre ~35 metri penalizzo
+    # Usiamo i valori dal config
+    w_block = config.PASS_W_BLOCK
+    w_long = config.PASS_W_LONG
+    w_angle = config.PASS_W_ANGLE
+    max_pass_len = config.PASS_MAX_LEN
 
     for j in range(n):
         if j == ball_carrier:
@@ -90,17 +90,15 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos, block_threshold=0.03)
 
         penalty += long_pen + ang_pen + block_pen
 
-    # Se nessun passaggio è “buono” → penalità extra
     if penalty == 0:
-        penalty += 10.0
+        penalty += config.PASS_PENALTY_NO_OPTS
 
     return penalty
 
 def cost_ball_support(df, ball_pos):
-    """Penalità se nessuno è vicino alla palla"""
     dists = np.linalg.norm(df[['x', 'y']].values - ball_pos, axis=1)
-    # Penalizza la distanza del giocatore più vicino alla palla
-    return np.min(dists) * 5.0
+    return np.min(dists) * config.BALL_SUPPORT_W_MULT
+
 
 def objective_function(vector, args):
     player_names, obstacles_array, ball_pos, initial_df_ref = args
@@ -111,9 +109,11 @@ def objective_function(vector, args):
         "Start": initial_df_ref,
         "Candidate": df_candidate
     }
+    
+    # penalty_total ora userà i default presi da config se non specificati
     c_constraints = penalty_total(pos_dict_for_constraints)
 
-    if c_constraints > 5000:
+    if c_constraints > config.PENALTY_MAX_THRESHOLD:
         return c_constraints
 
     c_cover    = cost_coverage(df_candidate)
@@ -121,18 +121,13 @@ def objective_function(vector, args):
     c_ball     = cost_ball_support(df_candidate, ball_pos)
     c_offside  = cost_offside(df_candidate, obstacles_array, ball_pos)
 
-    w_constraints = 1.0
-    w_cover       = 1.0
-    w_pass        = 1.0
-    w_ball        = 20.0
-    w_offside     = 100.0
-
+    # Pesi presi dal config
     total_cost = (
-        w_constraints * c_constraints +
-        w_cover       * c_cover +
-        w_pass        * c_pass +
-        w_ball        * c_ball +
-        w_offside     * c_offside
+        config.OBJ_W_CONSTRAINTS * c_constraints +
+        config.OBJ_W_COVER       * c_cover +
+        config.OBJ_W_PASS        * c_pass +
+        config.OBJ_W_BALL        * c_ball +
+        config.OBJ_W_OFFSIDE     * c_offside
     )
 
     return total_cost
