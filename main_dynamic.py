@@ -1,8 +1,8 @@
 from initial_pop import average_ball_positions
-from utils.animation import create_evolution_gif
+from utils.animation_dynamic import create_evolution_gif
 from utils.load_data import load_and_clean_metrica_tracking, load_match
-from utils.analysis import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
-from optimization.cma_es import run_optimization
+from utils.analysis_dynamic import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
+from optimization.cma_es_dynamic import run_optimization
 
 def main(): 
     print("Caricamento dati...")
