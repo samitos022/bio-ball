@@ -1,8 +1,8 @@
 import cma
 import numpy as np
-from utils.animation import interpolate_vectors, save_generation_plot
+from utils.animation_dynamic import interpolate_vectors, save_generation_plot
 from utils.conversion import flat_to_formation
-from optimization.objectives import objective_function
+from optimization.objectives_dynamic import objective_function
 from utils.away_reaction import react_away_to_home
 
 # ------------------------------------------------------------------------------
