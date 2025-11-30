@@ -1,8 +1,10 @@
 from initial_pop import average_ball_positions
 from utils.animation import create_evolution_gif
 from utils.load_data import load_and_clean_metrica_tracking, load_match
-from utils.analysis import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
+from utils.analysis import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence, plot_formation_vertical
 from optimization.cma_es import run_optimization
+from datetime import datetime
+import os
 
 def main(): 
     print("Caricamento dati...")
@@ -20,8 +22,8 @@ def main():
     print("Calcolo posizioni della palla per fase...")
     ball_home_dict = average_ball_positions(tracking_home, 'Home')
     
-    phase_home = "Possesso offensivo"
-    phase_away = "Fase difensiva"
+    phase_home = "Fase difensiva"
+    phase_away = "Possesso offensivo"
 
     ball_position = ball_home_dict[phase_home] 
     print(f"Palla media nella fase {phase_home}: {ball_position}")
@@ -42,9 +44,33 @@ def main():
         player_names=starters_home_list
     )
 
-    plot_convergence(cost_history)
+    output_folder = f"static_results_plots/{phase_home}"
+    os.makedirs(output_folder, exist_ok=True)
 
-    plot_formation_with_ball_and_obstacles(best_solution, f"Formazione Ottimizzata - {phase_home}", team='Home', color='blue', ball_position=ball_position, obstacles=obstacles_array)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    path_convergence = os.path.join(output_folder, f"convergence_static_{phase_home}_{timestamp}.png")
+    path_formation = os.path.join(output_folder, f"formation_static_{phase_home}_{timestamp}.png")
+
+    plot_convergence(cost_history, path_convergence)
+
+    plot_formation_with_ball_and_obstacles(
+        best_solution,
+        f"Formazione Ottimizzata - {phase_home}",
+        team='Home',
+        color='blue',
+        ball_position=ball_position,
+        obstacles=obstacles_array)
+    
+    plot_formation_vertical(
+        best_solution,
+        f"Formazione Ottimizzata - {phase_home}",
+        team='Home',
+        color='blue',
+        ball_position=ball_position,
+        obstacles=obstacles_array,
+        save_path=path_formation
+    )
 
 if __name__ == "__main__":
     main()

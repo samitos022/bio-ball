@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
+from mplsoccer import VerticalPitch
 import matplotlib.pyplot as plt
+import os
 
 def possessions(match):
     possessions_dict = {}
@@ -228,7 +230,60 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     
     plt.show()
 
-def plot_convergence(history):
+def plot_formation_vertical(positions, title, team='Home', color='red', ball_position=None, obstacles=None, save_path=None):
+    """
+    Visualizza la formazione sul campo VERTICALE senza nomi/numeri.
+    """
+    # 1. Setup campo verticale
+    pitch = VerticalPitch(pitch_type='metricasports', pitch_length=106, pitch_width=68, 
+                          pitch_color='#22312b', line_color='#c7d5cc')
+
+    fig, ax = pitch.draw(figsize=(8, 12))
+    fig.set_facecolor('#22312b')
+
+    # 2. Preparazione Dati
+    if isinstance(positions, dict):
+        xs = [v[0] for v in positions.values()]
+        ys = [v[1] for v in positions.values()]
+    else:
+        # Se è un DataFrame
+        xs = positions['x'].values
+        ys = positions['y'].values
+
+    # 3. Disegna i giocatori (Solo i pallini)
+    pitch.scatter(xs, ys, ax=ax, s=200, c=color, edgecolors='white', zorder=3, label=team)
+    
+    # --- RIMOSSO IL BLOCCO DI CODICE PER LE ETICHETTE (pitch.annotate) ---
+
+    # 4. Plot degli Ostacoli (Avversari)
+    if obstacles is not None:
+        if hasattr(obstacles, "columns"):
+            obs_x = obstacles["x"].values
+            obs_y = obstacles["y"].values
+        else:
+            obs_x = obstacles[:, 0]
+            obs_y = obstacles[:, 1]
+            
+        pitch.scatter(obs_x, obs_y, ax=ax, c='#555555', alpha=0.7, edgecolors='#888888', s=200, zorder=2, label='Opponents')
+
+    # 5. Plot della Palla
+    if ball_position is not None:
+        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='yellow', edgecolors='black', lw=1.5, zorder=5, label='Ball')
+
+    # Legenda e Titoli
+    ax.legend(facecolor='#22312b', edgecolor='white', labelcolor='white', loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
+    ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=40)
+
+    if save_path:
+        # Crea la cartella se non esiste
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        # Salva ad alta risoluzione (dpi=300) e ritaglia i bordi bianchi (bbox_inches='tight')
+        fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Grafico salvato in: {save_path}")
+    
+    plt.show()
+
+def plot_convergence(history, save_path=None):
     """
     Plotta l'andamento del costo (Fitness) durante le generazioni.
     """
@@ -255,6 +310,12 @@ def plot_convergence(history):
 
     plt.legend(facecolor='#22312b', edgecolor='white', labelcolor='white')
     plt.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300)
+        print(f"Grafico salvato in: {save_path}")
+
     plt.show()
 
 def prepare_obstacles(avg_positions_dict, phase, starters_list):
