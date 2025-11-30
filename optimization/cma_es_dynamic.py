@@ -17,7 +17,7 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
     # Parametri CMA
     sigma_init = 0.05
     options = {
-        'maxiter': 80,
+        'maxiter': 100,
         'popsize': 14,
         'bounds': [0, 1],
         'verbose': -1,

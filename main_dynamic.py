@@ -1,10 +1,13 @@
 from initial_pop import average_ball_positions
 from utils.animation_dynamic import create_evolution_gif
 from utils.load_data import load_and_clean_metrica_tracking, load_match
-from utils.analysis_dynamic import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence
+from utils.analysis_dynamic import average_positions, starters, prepare_obstacles, plot_formation_with_ball_and_obstacles, plot_convergence, plot_formation_vertical
 from optimization.cma_es_dynamic import run_optimization
+import os
+from datetime import datetime
 
-def main(): 
+def main():
+
     print("Caricamento dati...")
     tracking_home = load_and_clean_metrica_tracking(
         'data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv'
@@ -49,7 +52,15 @@ def main():
     )
 
     # --- PLOT ---
-    plot_convergence(cost_history)
+    output_folder = f"dynamic_results_plots/{phase_home}"
+    os.makedirs(output_folder, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    path_convergence = os.path.join(output_folder, f"convergence_dynamic_{phase_home}_{timestamp}.png")
+    path_formation = os.path.join(output_folder, f"formation_dynamic_{phase_home}_{timestamp}.png")
+
+    plot_convergence(cost_history, path_convergence)
 
     plot_formation_with_ball_and_obstacles(
         best_solution,
@@ -59,6 +70,17 @@ def main():
         ball_position=ball_position,
         obstacles=initial_away_df   # puoi anche usare away reattiva ricostruita
     )
+
+    plot_formation_vertical(
+        best_solution,
+        f"Formazione Ottimizzata - {phase_home}",
+        team='Home',
+        color='blue',
+        ball_position=ball_position,
+        obstacles=initial_away_df,
+        save_path=path_formation
+    )
+    
 
 
 if __name__ == "__main__":
