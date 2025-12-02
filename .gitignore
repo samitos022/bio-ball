@@ -11,3 +11,4 @@ animation/
 evolution.gif
 dynamic_results_plots/
 static_results_plots/
+optimization/__pycache__/
