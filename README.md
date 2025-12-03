@@ -137,4 +137,4 @@ for the **dynamic version**.
 
 ## 🚀 Author
 
-Developed by Sam Nejati, Daniele Notarangelo e Jasnoor Singh.
+Developed by Sam Nejati, Daniele Notarangelo and Jasnoor Singh.
