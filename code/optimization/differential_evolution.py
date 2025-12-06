@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.optimize import differential_evolution
 from utils.conversion import flat_to_formation
-from optimization.objectives_dynamic import objective_function
+from optimization.objectives import objective_function
 from utils.away_reaction import react_away_to_home
+import config
 
 
 def run_de_optimization(initial_guess, initial_away_df, ball_position, player_names):
@@ -22,8 +23,8 @@ def run_de_optimization(initial_guess, initial_away_df, ball_position, player_na
             ball_pos=ball_pos
         )
 
-        args = (player_names, away_df, ball_pos, df_ref)
-
+        args = (player_names, initial_away_df, ball_pos, df_ref, 'dynamic')
+        
         return objective_function(x, args)
 
     df_ref = flat_to_formation(initial_guess, player_names)
@@ -43,13 +44,13 @@ def run_de_optimization(initial_guess, initial_away_df, ball_position, player_na
     result = differential_evolution(
         func=lambda x: fitness(x, player_names, initial_away_df, ball_position, df_ref),
         bounds=bounds,
-        maxiter=50,
-        popsize=20,
-        mutation=(0.5, 1.0),
-        recombination=0.7,
+        maxiter=config.DE_MAXITER,
+        popsize=config.DE_POPSIZE,
+        mutation=(config.DE_MUTATION[0], config.DE_MUTATION[1]),
+        recombination=config.DE_RECOMBINATION,
         callback=callbackF,
         polish=True,
-        tol=1e-6
+        tol=config.DE_TOL
     )
 
     best_vector = result.x

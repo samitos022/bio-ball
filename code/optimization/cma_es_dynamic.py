@@ -2,8 +2,9 @@ import cma
 import numpy as np
 from utils.animation_dynamic import interpolate_vectors, save_generation_plot
 from utils.conversion import flat_to_formation
-from optimization.objectives_dynamic import objective_function
+from optimization.objectives import objective_function
 from utils.away_reaction import react_away_to_home
+import config
 
 # ------------------------------------------------------------------------------
 # CMA-ES PRINCIPALE
@@ -12,16 +13,16 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
 
     # Argomenti statici per la fitness
     initial_df_ref = flat_to_formation(initial_guess, player_names)
-    fitness_args = (player_names, initial_away_df, ball_position, initial_df_ref)
-
+    fitness_args = (player_names, initial_away_df, ball_position, initial_df_ref, 'dynamic')
+    
     # Parametri CMA
-    sigma_init = 0.05
+    sigma_init = config.CMA_SIGMA_INIT
     options = {
-        'maxiter': 100,
-        'popsize': 14,
+        'maxiter': config.CMA_MAXITER,
+        'popsize': config.CMA_POPSIZE,
         'bounds': [0, 1],
         'verbose': -1,
-        'tolfun': 1e-3
+        'tolfun': config.CMA_TOLFUN
     }
 
     es = cma.CMAEvolutionStrategy(initial_guess, sigma_init, options)

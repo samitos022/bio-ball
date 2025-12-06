@@ -1,8 +1,5 @@
 import numpy as np
 from scipy.spatial import ConvexHull
-from utils.conversion import flat_to_formation
-from utils.away_reaction import react_away_to_home
-from optimization.constraints import penalty_total
 import config
 
 def point_line_distance(point, a, b):
@@ -31,64 +28,49 @@ def cost_offside(df_home, obstacles_array, ball_pos, attacking_direction=config.
     opp_x = obstacles_array[:, 0]
     
     if attacking_direction == 'right':
-        # Difensore più arretrato (escluso il portiere se gestito a parte, qui prendiamo il penultimo o ultimo)
-        # Assumiamo sorted_opp[-2] come linea fuorigioco standard (ultimo difensore escluso portiere)
         if len(opp_x) < 2: return 0.0
         sorted_opp = np.sort(opp_x)
         offside_line = sorted_opp[-2] 
-        
-        # Se la palla è oltre la linea, vale la linea della palla
         effective_line = max(offside_line, ball_pos[0])
-        
         mask_offside = (home_x > effective_line)
         if np.any(mask_offside):
             return np.sum(home_x[mask_offside] - effective_line)
-            
-    else: # left
+    else:
         if len(opp_x) < 2: return 0.0
         sorted_opp = np.sort(opp_x)
         offside_line = sorted_opp[1]
-        
         effective_line = min(offside_line, ball_pos[0])
-        
         mask_offside = (home_x < effective_line)
         if np.any(mask_offside):
             return np.sum(effective_line - home_x[mask_offside])
-
     return 0.0
 
 def cost_passing_lanes(df_home, obstacles_array, ball_pos):
     home = df_home[['x', 'y']].values
     n = len(home)
-
     dists = np.linalg.norm(home - ball_pos, axis=1)
-    ball_carrier = np.argmin(dists)
+    ball_carrier = np.argmin(dists) 
     p1 = home[ball_carrier]
 
     penalty = 0.0
     valid_passes = 0
 
     for j in range(n):
-        if j == ball_carrier:
-            continue
-
+        if j == ball_carrier: continue
         p2 = home[j]
         dist = np.linalg.norm(p1 - p2)
 
-        # Penalità lunghezza
         if dist > config.PASS_MAX_LEN:
             penalty += config.PASS_W_LONG * (dist - config.PASS_MAX_LEN)**2
 
-        # Penalità angolo
         penalty += config.PASS_W_ANGLE * (1 - angle_score(p1, p2))
 
-        # Penalità blocchi
         block = False
         for opp in obstacles_array:
             if point_line_distance(opp, p1, p2) < config.PASS_BLOCK_THRESHOLD:
                 block = True
                 break
-
+        
         if block:
             penalty += config.PASS_W_BLOCK
         else:
@@ -102,49 +84,3 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos):
 def cost_ball_support(df, ball_pos):
     dists = np.linalg.norm(df[['x', 'y']].values - ball_pos, axis=1)
     return np.min(dists) * config.BALL_SUPPORT_W_MULT
-
-def objective_function(vector, args):
-    """
-    Versione DINAMICA: Calcola la reazione avversaria prima di valutare i costi.
-    """
-    player_names, initial_away_df, ball_pos, initial_df_ref = args
-
-    # 1. Ricostruzione formazione candidata
-    df_candidate = flat_to_formation(vector, player_names)
-
-    # 2. Reazione dinamica avversaria
-    away_reactive_df = react_away_to_home(
-        home_df=df_candidate,
-        base_away_df=initial_away_df,
-        ball_pos=ball_pos
-    )
-    obstacles_array = away_reactive_df[["x", "y"]].to_numpy()
-
-    # 3. Calcolo Penalità Strutturali (Constraints)
-    # Assumiamo che penalty_total usi internamente config o default
-    pos_dict_for_constraints = {
-        "Start": initial_df_ref,
-        "Candidate": df_candidate
-    }
-    c_constraints = penalty_total(pos_dict_for_constraints)
-
-    # Hard constraint check
-    if c_constraints > config.PENALTY_MAX_THRESHOLD:
-        return c_constraints * config.OBJ_W_CONSTRAINTS
-
-    # 4. Calcolo Obiettivi Tattici
-    c_cover    = cost_coverage(df_candidate)
-    c_pass     = cost_passing_lanes(df_candidate, obstacles_array, ball_pos)
-    c_ball     = cost_ball_support(df_candidate, ball_pos)
-    c_offside  = cost_offside(df_candidate, obstacles_array, ball_pos)
-
-    # 5. Somma Pesata (dal Config)
-    total_cost = (
-        config.OBJ_W_CONSTRAINTS * c_constraints +
-        config.OBJ_W_COVER       * c_cover +
-        config.OBJ_W_PASS        * c_pass +
-        config.OBJ_W_BALL        * c_ball +
-        config.OBJ_W_OFFSIDE     * c_offside
-    )
-
-    return total_cost

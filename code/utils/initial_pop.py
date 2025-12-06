@@ -3,8 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.pyplot as plt
-from utils.load_data import load_and_clean_metrica_tracking
-from utils.load_data import load_match
 
 def possessions(match):
     possessions_dict = {}
@@ -190,12 +188,12 @@ def plot_formation(positions, title, team='Home', color='red'):
     ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
     plt.show()
 
-try:
-    tracking_home = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
-    tracking_away = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
-    print("[SUCCESS] Dati caricati e puliti.")
-    match = load_match('data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
-    print("[SUCCESS] Partita caricata.")
-except Exception as e:
-    print(f"[ERROR] Impossibile caricare i dati: {e}")
-    exit()
+# try:
+#     tracking_home = load_and_clean_metrica_tracking('code/data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
+#     tracking_away = load_and_clean_metrica_tracking('code/data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
+#     print("[SUCCESS] Dati caricati e puliti.")
+#     match = load_match('code/data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
+#     print("[SUCCESS] Partita caricata.")
+# except Exception as e:
+#     print(f"[ERROR] Impossibile caricare i dati: {e}")
+#     exit()
