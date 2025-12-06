@@ -7,7 +7,7 @@ from utils.away_reaction import react_away_to_home
 import config
 
 # ------------------------------------------------------------------------------
-# CMA-ES PRINCIPALE
+# CMA-ES DINAMICO
 # ------------------------------------------------------------------------------
 def run_optimization(initial_guess, initial_away_df, ball_position, player_names):
 
@@ -36,9 +36,6 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
     SAVE_EVERY = 2
     INTERPOLATION_STEPS = 6
 
-    # ----------------------------------------------------------------------
-    #                        LOOP DI OTTIMIZZAZIONE
-    # ----------------------------------------------------------------------
     while not es.stop():
 
         solutions = es.ask()
@@ -77,9 +74,7 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
         es.tell(solutions, fitness_values)
         cost_history.append(best_cost)
 
-        # ------------------------------------------------------------------
-        #               SALVATAGGIO FRAME PER ANIMAZIONE (FLUIDA)
-        # ------------------------------------------------------------------
+        # SALVATAGGIO FRAME PER ANIMAZIONE (FLUIDA)
         if es.countiter % SAVE_EVERY == 0 and best_vector_home is not None:
 
             # Interpolazione tra la generazione precedente e quella attuale

@@ -53,7 +53,7 @@ def run_de_optimization(initial_guess, initial_away_df, ball_position, player_na
         tol=config.DE_TOL
     )
 
-    best_vector = result.x
+    best_vector = flat_to_formation(result.x, player_names)
     best_cost = result.fun
 
     return best_vector, best_cost, history

@@ -3,7 +3,7 @@
 # =============================================================================
 # PARAMETRI CAMPO E GIOCO
 # =============================================================================
-FIELD_LIMITS = (105.0, 68.0)  # Dimensioni campo standard (x, y)
+FIELD_LIMITS = (1.0, 1.0)  # Dimensioni campo standard (x, y)
 OFFSIDE_ATTACK_DIR = 'right'  # Direzione di attacco per il fuorigioco
 
 # =============================================================================
@@ -22,11 +22,11 @@ OBJ_W_OFFSIDE     = 100.0   # Peso mantenimento linea fuorigioco
 # =============================================================================
 
 # --- Costo Passaggi ---
-PASS_BLOCK_THRESHOLD = 0.03  # Distanza minima ostacolo-linea per considerare passaggio bloccato
-PASS_W_BLOCK = 8.0           # Penalità se il passaggio è bloccato
+PASS_BLOCK_THRESHOLD = 0.021080069721557314  # Distanza minima ostacolo-linea per considerare passaggio bloccato
+PASS_W_BLOCK = 8.96           # Penalità se il passaggio è bloccato
 PASS_W_LONG = 1.5            # Penalità per passaggi troppo lunghi
 PASS_W_ANGLE = 0.5           # Penalità per angoli di passaggio difficili
-PASS_MAX_LEN = 0.35          # Lunghezza massima "ideale" (normalizzata 0-1 o in metri/100)
+PASS_MAX_LEN = 0.449          # Lunghezza massima "ideale" (normalizzata 0-1 o in metri/100)
 PASS_PENALTY_NO_OPTS = 10.0  # Penalità extra se non ci sono passaggi sicuri
 
 # --- Costo Supporto Palla ---
@@ -40,7 +40,7 @@ MIN_DIST_PLAYER = 0.02       # Distanza minima tra giocatori (evitare collisioni
 
 PENALTY_W_TRANSITION = 1.0   # Costo spostamento (per scenario dinamico)
 PENALTY_W_BOUNDARY   = 100.0 # Costo uscita dal campo
-PENALTY_W_PROXIMITY  = 500.0 # Costo collisione tra giocatori
+PENALTY_W_PROXIMITY  = 226.6 # Costo collisione tra giocatori
 PENALTY_W_ORDER      = 10.0  # Mantenimento ordine relativo (dx resta a dx di sx)
 
 # =============================================================================
@@ -56,6 +56,6 @@ DE_TOL = 1e-6
 
 # --- CMA-ES ---
 CMA_MAXITER = 100
-CMA_POPSIZE = 14
-CMA_SIGMA_INIT = 0.05
-CMA_TOLFUN = 1e-3
+CMA_POPSIZE = 25
+CMA_SIGMA_INIT = 0.0224
+CMA_TOLFUN = 0.00028226547316571903

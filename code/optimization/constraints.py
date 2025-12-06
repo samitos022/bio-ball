@@ -21,8 +21,6 @@ def penalty_total(positions):
         n_players = len(pos)
 
         # 1. BOUNDARIES (Fuori campo)
-        # Assumiamo coordinate normalizzate o metri. Config ha FIELD_LIMITS.
-        # Se i tuoi dati sono normalizzati 0-1, cambia FIELD_LIMITS in (1.0, 1.0) nel config.
         out_x = (current_x < 0) | (current_x > config.FIELD_LIMITS[0])
         out_y = (current_y < 0) | (current_y > config.FIELD_LIMITS[1])
         penalty += config.PENALTY_W_BOUNDARY * (np.sum(out_x) + np.sum(out_y))

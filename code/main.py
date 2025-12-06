@@ -6,7 +6,6 @@ from utils.conversion import flat_to_formation
 from utils.analysis_dynamic import plot_convergence, plot_formation_vertical, plot_formation_with_ball_and_obstacles
 from utils.animation import create_evolution_gif
 
-# Importa i runner
 from optimization.cma_es import run_optimization as run_cma_static
 from optimization.cma_es_dynamic import run_optimization as run_cma_dynamic
 from optimization.differential_evolution import run_de_optimization
@@ -42,7 +41,7 @@ def main():
             player_names=data["starters_home"]
         )
         # Nota: in dinamico, gli ostacoli finali dipendono dalla soluzione trovata.
-        # Per il plot finale statico usiamo la base (o ricalcoliamo la reazione se vuoi essere preciso)
+        # Per il plot finale statico usiamo la base (TODO: ricalcolare la reazione)
         final_obstacles = data["obstacles_matrix"] 
 
     elif args.mode == "de":
@@ -91,4 +90,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    create_evolution_gif() # Decommenta se vuoi la GIF ogni volta
+    create_evolution_gif()

@@ -31,7 +31,7 @@ def save_generation_plot(vector, player_names, obstacles, ball_pos, gen, output_
 
     # Salva immagine
     filepath = os.path.join(output_dir, f"gen_{gen:04d}.png")
-    plt.savefig(filepath, dpi=120, bbox_inches='tight')
+    plt.savefig(filepath, dpi=120)
     plt.close(fig)
     
     return filepath
