@@ -6,7 +6,7 @@ import numpy as np
 from utils.conversion import flat_to_formation
 
 # cartella dove salvare i frame
-FRAMES_DIR = "animation_frames"
+FRAMES_DIR = "code/animation_frames"
 os.makedirs(FRAMES_DIR, exist_ok=True)
 
 # RISOLUZIONE FISSA GARANTITA (stessa dimensione ogni volta)

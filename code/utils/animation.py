@@ -4,7 +4,7 @@ import os
 from utils.conversion import flat_to_formation
 import imageio
 
-def save_generation_plot(vector, player_names, obstacles, ball_pos, gen, output_dir="evolution_frames"):
+def save_generation_plot(vector, player_names, obstacles, ball_pos, gen, output_dir="code/animation_frames"):
     # Crea cartella
     os.makedirs(output_dir, exist_ok=True)
 
@@ -31,12 +31,12 @@ def save_generation_plot(vector, player_names, obstacles, ball_pos, gen, output_
 
     # Salva immagine
     filepath = os.path.join(output_dir, f"gen_{gen:04d}.png")
-    plt.savefig(filepath, dpi=120, bbox_inches='tight')
+    plt.savefig(filepath, dpi=120)
     plt.close(fig)
     
     return filepath
 
-def create_evolution_gif(frame_dir="evolution_frames", output="evolution.gif"):
+def create_evolution_gif(frame_dir="code/animation_frames", output="animation.gif"):
     frames = sorted(
         [os.path.join(frame_dir, f) for f in os.listdir(frame_dir) if f.endswith(".png")]
     )

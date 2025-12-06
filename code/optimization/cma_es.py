@@ -3,6 +3,7 @@ import numpy as np
 from utils.animation import save_generation_plot
 from utils.conversion import flat_to_formation
 from optimization.objectives import objective_function 
+import config
 
 def run_optimization(initial_guess, obstacles, ball_position, player_names):
     """
@@ -13,20 +14,20 @@ def run_optimization(initial_guess, obstacles, ball_position, player_names):
     initial_df_ref = flat_to_formation(initial_guess, player_names)
     fitness_args = (player_names, obstacles, ball_position, initial_df_ref)
     
-    # 2. Configurazione CMA (Interfaccia a Oggetti)
-    sigma_init = 0.05
+    # 2. Configurazione CMA
+    sigma_init = config.CMA_SIGMA_INIT
     options = {
-        'maxiter': 100,
-        'popsize': 16,
+        'maxiter': config.CMA_MAXITER,
+        'popsize': config.CMA_POPSIZE,
         'bounds': [0, 1], 
         'verbose': -1,
-        'tolfun': 1e-3
+        'tolfun': config.CMA_TOLFUN
     }
 
     # Inizializziamo la strategia
     es = cma.CMAEvolutionStrategy(initial_guess, sigma_init, options)
     
-    cost_history = [] # Qui salveremo il miglior costo di ogni generazione
+    cost_history = []
 
     print(f"Inizio ottimizzazione (Ball: {ball_position})...")
 
@@ -65,9 +66,9 @@ def run_optimization(initial_guess, obstacles, ball_position, player_names):
 
     # 4. Recuperiamo il risultato finale
     result = es.result
-    best_vector = result.xbest
+    best_vector = flat_to_formation(result.xbest, player_names)
     best_score = result.fbest
     
     print(f"Ottimizzazione completata. Costo finale: {best_score:.4f}")
     
-    return flat_to_formation(best_vector, player_names), cost_history
+    return best_vector, cost_history
