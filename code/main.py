@@ -12,16 +12,24 @@ from optimization.differential_evolution import run_de_optimization
 
 def main():
     parser = argparse.ArgumentParser(description="Football Formation Optimization")
+    
+    # Argomento Modalità
     parser.add_argument("--mode", type=str, default="cma_static", 
                         choices=["cma_static", "cma_dynamic", "de"], 
                         help="Optimization algorithm to use")
+    
+    # NUOVO Argomento Scenario
+    parser.add_argument("--scenario", type=str, default=None,
+                        help="Name of the scenario in ground_truth.json to use (overrides historical data)")
+
     args = parser.parse_args()
 
-    # 1. Setup Dati
-    data = setup_scenario()
+    # 1. Setup Dati (Passando lo scenario)
+    data = setup_scenario(scenario_name=args.scenario)
     
-    phase_home = "Fase difensiva" # Solo per naming nei plot
-    print(f"=== RUNNING: {args.mode.upper()} ===")
+    phase_home = "Fase difensiva" 
+    scenario_label = args.scenario if args.scenario else "Storico"
+    print(f"=== RUNNING: {args.mode.upper()} | SCENARIO: {scenario_label} ===")
 
     # 2. Selezione Algoritmo
     if args.mode == "cma_static":

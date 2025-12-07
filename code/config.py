@@ -12,10 +12,10 @@ OFFSIDE_ATTACK_DIR = 'right'  # Direzione di attacco per il fuorigioco
 # Questi sono i pesi che determinano la "tattica". 
 # Optuna potrà modificarli per cambiare il comportamento della squadra.
 OBJ_W_CONSTRAINTS = 100.0   # Peso per penalità "hard" (fuori campo, sovrapposizioni)
-OBJ_W_COVER       = 1.0     # Peso copertura spaziale (Convex Hull)
-OBJ_W_PASS        = 1.5     # Peso qualità linee di passaggio
-OBJ_W_BALL        = 20.0    # Peso supporto al portatore di palla
-OBJ_W_OFFSIDE     = 100.0   # Peso mantenimento linea fuorigioco
+OBJ_W_COVER       = 6.28     # Peso copertura spaziale (Convex Hull)
+OBJ_W_PASS        = 5.67     # Peso qualità linee di passaggio
+OBJ_W_BALL        = 29.26    # Peso supporto al portatore di palla
+OBJ_W_OFFSIDE     = 189.197   # Peso mantenimento linea fuorigioco
 
 # =============================================================================
 # PARAMETRI COSTI SPECIFICI

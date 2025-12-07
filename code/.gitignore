@@ -7,9 +7,6 @@ outcmaes/
 evolution_frames/
 frames/
 animation_frames/
-animation/
-evolution.gif
-dynamic_results_plots/
-static_results_plots/
+animation.gif
+results_plots/
 optimization/__pycache__/
-plot_de/
