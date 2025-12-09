@@ -1,97 +1,117 @@
 import config
 import pandas as pd
-import numpy as np
 from utils.conversion import flat_to_formation
 from optimization.constraints import penalty_total
 from optimization.cost_functions import (
-    cost_coverage, 
-    cost_passing_lanes, 
-    cost_ball_support, 
-    cost_offside
+    cost_coverage, cost_passing_lanes, cost_offside_avoidance,
+    cost_marking, cost_defensive_compactness, cost_defensive_line_height,
+    cost_ball_pressure
 )
 
-def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, initial_df_ref):
+def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, initial_df_ref, phase_name):
     """
-    Stampa una tabella dettagliata con i valori grezzi, pesati e i sotto-dettagli.
+    Stampa un report dettagliato degli obiettivi attivi per la fase corrente.
     """
     
-    # 1. Gestione Input
     if isinstance(formation_data, pd.DataFrame):
-        df_candidate = formation_data
+        df = formation_data
     else:
-        df_candidate = flat_to_formation(formation_data, player_names)
+        df = flat_to_formation(formation_data, player_names)
 
-    # 2. Calcolo Obiettivi (DETAILED = True)
-    res_cover = cost_coverage(df_candidate, detailed=True)
-    res_pass  = cost_passing_lanes(df_candidate, obstacles, ball_pos, detailed=True)
-    res_ball  = cost_ball_support(df_candidate, ball_pos, detailed=True)
-    res_off   = cost_offside(df_candidate, obstacles, ball_pos, detailed=True)
-
-    # 3. Calcolo Constraints (DETAILED = True)
-    pos_dict = {"Start": initial_df_ref, "Candidate": df_candidate}
-    res_constr = penalty_total(pos_dict, detailed=True)
-
-    # 4. Calcolo Costi Pesati
-    w_const = config.OBJ_W_CONSTRAINTS
-    w_cover = config.OBJ_W_COVER
-    w_pass  = config.OBJ_W_PASS
-    w_ball  = config.OBJ_W_BALL
-    w_off   = config.OBJ_W_OFFSIDE
-
-    total_fitness = (res_constr["total"] * w_const) + \
-                    (res_cover["total"] * w_cover) + \
-                    (res_pass["total"] * w_pass) + \
-                    (res_ball["total"] * w_ball) + \
-                    (res_off["total"] * w_off)
-
-    # 5. Stampa Tabella Formattata
-    print("\n" + "="*95)
-    print(f"{'FITNESS BREAKDOWN DETTAGLIATO':^95}")
-    print("="*95)
-    print(f"{'OBIETTIVO / DETTAGLIO':<40} | {'VAL GREZZO':<12} | {'PESO':<10} | {'COSTO FINALE':<12}")
-    print("-" * 95)
+    weights = config.PHASE_WEIGHTS.get(phase_name, config.PHASE_WEIGHTS["Fase difensiva"])
     
-    # --- CONSTRAINTS ---
-    c_tot_constr = res_constr["total"] * w_const
-    print(f"\033[1m{'Constraints (Hard)':<40} | {res_constr['total']:<12.4f} | {w_const:<10.1f} | {c_tot_constr:<12.4f}\033[0m")
-    if res_constr["total"] > 0:
-        print(f"  ├─ Fuori Campo: {res_constr['boundary']:.2f}")
-        print(f"  ├─ Collisioni:  {res_constr['collision']:.2f}")
-        print(f"  ├─ Ordine:      {res_constr['order']:.2f}")
-        print(f"  └─ Transizione: {res_constr['transition']:.2f}")
+    print("\n" + "="*100)
+    print(f"FITNESS REPORT DETTAGLIATO: {phase_name.upper()}")
+    print("="*100)
+    print(f"{'OBIETTIVO / DETTAGLIO':<45} | {'VAL GREZZO':<12} | {'PESO':<8} | {'COSTO':<12}")
+    print("-" * 100)
 
-    # --- COVERAGE ---
-    c_tot_cover = res_cover["total"] * w_cover
-    print(f"-" * 95)
-    print(f"\033[1m{'Coverage':<40} | {res_cover['total']:<12.4f} | {w_cover:<10.1f} | {c_tot_cover:<12.4f}\033[0m")
-    print(f"  ├─ Area Coperta: {res_cover['raw_area']:.4f} (su 1.0)")
-    print(f"  └─ Spazio Vuoto: {res_cover['empty_space']:.4f}")
+    total_fitness = 0.0
 
-    # --- PASSING LANES ---
-    c_tot_pass = res_pass["total"] * w_pass
-    print(f"-" * 95)
-    print(f"\033[1m{'Passing Lanes':<40} | {res_pass['total']:<12.4f} | {w_pass:<10.1f} | {c_tot_pass:<12.4f}\033[0m")
-    print(f"  ├─ Passaggi Validi: {res_pass['num_valid']}")
-    print(f"  ├─ Passaggi Bloccati: {res_pass['num_blocked']} (Pen: {res_pass['p_block']:.2f})")
-    print(f"  ├─ Penalità Angolo: {res_pass['p_angle']:.2f}")
-    print(f"  └─ Penalità Lunghezza: {res_pass['p_long']:.2f}")
+    # --- 1. CONSTRAINTS ---
+    pos_dict = {"Start": initial_df_ref, "Candidate": df}
+    res_constr = penalty_total(pos_dict, detailed=True)
+    cost_c = res_constr["total"] * config.OBJ_W_CONSTRAINTS
+    total_fitness += cost_c
+    
+    print(f"\033[1m{'Constraints (Hard)':<45} | {res_constr['total']:<12.4f} | {config.OBJ_W_CONSTRAINTS:<8} | {cost_c:<12.4f}\033[0m")
+    if res_constr["total"] > 0.0001:
+        if res_constr['boundary'] > 0: print(f"  ├─ Fuori Campo: {res_constr['boundary']:.4f}")
+        if res_constr['collision'] > 0: print(f"  ├─ Collisioni:  {res_constr['collision']:.4f}")
+        if res_constr['transition'] > 0: print(f"  └─ Transizione: {res_constr['transition']:.4f}")
 
-    # --- BALL SUPPORT ---
-    c_tot_ball = res_ball["total"] * w_ball
-    print(f"-" * 95)
-    print(f"\033[1m{'Ball Support':<40} | {res_ball['total']:<12.4f} | {w_ball:<10.1f} | {c_tot_ball:<12.4f}\033[0m")
-    print(f"  └─ Distanza min (m): {res_ball['min_distance_meters']*100:.2f} m") # Assumendo campo unitario 100m
+    print("-" * 100)
 
-    # --- OFFSIDE ---
-    c_tot_off = res_off["total"] * w_off
-    print(f"-" * 95)
-    print(f"\033[1m{'Offside':<40} | {res_off['total']:<12.4f} | {w_off:<10.1f} | {c_tot_off:<12.4f}\033[0m")
-    if res_off["players_offside"] > 0:
-        print(f"  ├─ Giocatori in fuorigioco: {res_off['players_offside']}")
-        print(f"  └─ Metri totali oltre: {res_off['total_meters']:.4f}")
-    else:
-        print(f"  └─ Nessun fuorigioco")
+    # --- 2. OBIETTIVI OFFENSIVI ---
+    
+    # Coverage
+    if weights.get("W_COVERAGE", 0) > 0:
+        res = cost_coverage(df, detailed=True)
+        cost = res["total"] * weights["W_COVERAGE"]
+        total_fitness += cost
+        print(f"\033[1m{'Coverage (Massimizza Area)':<45} | {res['total']:<12.4f} | {weights['W_COVERAGE']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ Area Reale (Hull): {res['raw_area']:.4f} (Target: 1.0)")
 
-    print("=" * 95)
-    print(f"\033[1m{'TOTALE FITNESS':<77} | {total_fitness:<12.4f}\033[0m")
-    print("=" * 95 + "\n")
+    # Passing Lanes (AGGIORNATO PER NUOVE CHIAVI)
+    if weights.get("W_PASSING", 0) > 0:
+        res = cost_passing_lanes(df, obstacles, ball_pos, detailed=True)
+        cost = res["total"] * weights["W_PASSING"]
+        total_fitness += cost
+        print(f"\033[1m{'Passing Lanes (Bonus Quality)':<45} | {res['total']:<12.4f} | {weights['W_PASSING']:<8} | {cost:<12.4f}\033[0m")
+        # Controllo se stiamo usando la nuova versione (dizionario con 'valid_options')
+        if 'valid_options' in res:
+            print(f"  ├─ Opzioni Valide:    {res['valid_options']} (Target: >=3)")
+            print(f"  ├─ Opzioni Mancanti:  {res['missing_options']}")
+            print(f"  └─ Blocchi ignorati:  {res['blocked_count_debug']}")
+        else:
+            # Fallback vecchia versione
+            print(f"  └─ Valore: {res['total']}")
+
+    # Offside Avoidance
+    if weights.get("W_OFFSIDE", 0) > 0:
+        res = cost_offside_avoidance(df, obstacles, ball_pos, detailed=True)
+        cost = res["total"] * weights["W_OFFSIDE"]
+        total_fitness += cost
+        print(f"\033[1m{'Offside Avoidance':<45} | {res['total']:<12.4f} | {weights['W_OFFSIDE']:<8} | {cost:<12.4f}\033[0m")
+        if res['total'] > 0:
+            print(f"  └─ Metri oltre la linea: {res['meters']:.4f}")
+
+    # --- 3. OBIETTIVI DIFENSIVI ---
+
+    # Marking
+    if weights.get("W_MARKING", 0) > 0:
+        res = cost_marking(df, obstacles, detailed=True)
+        cost = res["total"] * weights["W_MARKING"]
+        total_fitness += cost
+        print(f"\033[1m{'Marking (Distanza Avversari)':<45} | {res['total']:<12.4f} | {weights['W_MARKING']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ Distanza media marcatore: {res['avg_dist']*100:.1f} metri")
+
+    # Compactness
+    if weights.get("W_COMPACTNESS", 0) > 0:
+        res = cost_defensive_compactness(df, detailed=True)
+        cost = res["total"] * weights["W_COMPACTNESS"]
+        total_fitness += cost
+        print(f"\033[1m{'Defensive Compactness':<45} | {res['total']:<12.4f} | {weights['W_COMPACTNESS']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ Dispersione dal centro: {res['dispersion']:.4f}")
+
+    # Line Height
+    if weights.get("W_LINE_HEIGHT", 0) > 0:
+        res = cost_defensive_line_height(df, ball_pos, detailed=True)
+        cost = res["total"] * weights["W_LINE_HEIGHT"]
+        total_fitness += cost
+        print(f"\033[1m{'Defensive Line Height':<45} | {res['total']:<12.4f} | {weights['W_LINE_HEIGHT']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ X Ultimo Difensore: {res['line_x']:.4f} (Target: Alto)")
+
+    # --- 4. COMMON ---
+    
+    if weights.get("W_BALL_PRESS", 0) > 0:
+        res = cost_ball_pressure(df, ball_pos, detailed=True)
+        cost = res["total"] * weights["W_BALL_PRESS"]
+        total_fitness += cost
+        label = "Ball Pressing" if "difensiva" in phase_name.lower() else "Ball Support"
+        print(f"\033[1m{label:<45} | {res['total']:<12.4f} | {weights['W_BALL_PRESS']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ Distanza min dalla palla: {res['dist']*100:.1f} metri")
+
+    print("-" * 100)
+    print(f"\033[1m{'TOTALE FITNESS':<79} | {total_fitness:<12.4f}\033[0m")
+    print("="*100 + "\n")
