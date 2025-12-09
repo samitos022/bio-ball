@@ -34,7 +34,7 @@ def main():
     data = setup_scenario(scenario_name=args.scenario)
     
     # Definiamo la fase su cui lavorare
-    phase_home = "Possesso offensivo" 
+    phase_home = "Fase difensiva" 
     
     scenario_label = args.scenario if args.scenario else "Storico"
     print(f"\n=== RUNNING: {args.mode.upper()} | SCENARIO: {scenario_label} | FASE: {phase_home} ===\n")
@@ -109,9 +109,6 @@ def main():
     os.makedirs(output_folder, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # === CORREZIONE FONDAMENTALE ===
-    # Convertiamo il vettore grezzo (best_vec) in DataFrame PRIMA di plottare
-    # Questo risolve l'IndexError
     best_fmt_df = flat_to_formation(best_vec, data["starters_home"])
     # ===============================
 
@@ -123,7 +120,7 @@ def main():
 
     # B. Plot Orizzontale (Passiamo il DataFrame)
     plot_formation_with_ball_and_obstacles(
-        best_fmt_df,  # <--- USIAMO IL DATAFRAME QUI
+        best_fmt_df, 
         f"Formazione Ottimizzata - {phase_home}",
         team='Home',
         color='blue',
@@ -133,7 +130,7 @@ def main():
 
     # C. Plot Verticale (Passiamo il DataFrame)
     plot_formation_vertical(
-        best_fmt_df,  # <--- E QUI
+        best_fmt_df,
         f"{args.mode.upper()} Optimized - {phase_home}",
         team="Home",
         color="blue",

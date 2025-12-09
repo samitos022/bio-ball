@@ -27,8 +27,8 @@ PASS_PENALTY_NO_OPTS = 10.0
 PHASE_WEIGHTS = {
     "Fase difensiva": {
         # Obiettivi Difensivi
-        "W_MARKING":      15.0,   # Priorità: marcare
-        "W_COMPACTNESS":  10.0,   # Priorità: stare stretti
+        "W_MARKING":      40.0,   # Priorità: marcare
+        "W_COMPACTNESS":  5.0,   # Priorità: stare stretti
         "W_LINE_HEIGHT":  5.0,    # Priorità: tenere la linea alta
         "W_BALL_PRESS":   20.0,   # Priorità: pressare portatore
         

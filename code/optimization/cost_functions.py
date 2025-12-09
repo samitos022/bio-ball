@@ -132,29 +132,51 @@ def cost_offside_avoidance(df_home, obstacles_array, ball_pos, attacking_dir='ri
     return offside_dist
 
 # --- DEFENSIVE OBJECTIVES ---
-
 def cost_marking(df_home, obstacles_array, detailed=False):
     """
-    (Defensive) Ogni avversario deve avere un marcatore vicino.
-    Calcola la somma delle distanze minime (Home -> Opponent).
+    (Defensive) Ogni avversario DI MOVIMENTO deve avere un marcatore vicino.
+    Escludiamo il portiere avversario dal calcolo per evitare pressing inutile.
     """
     home = df_home[['x', 'y']].values
     opps = obstacles_array
     
-    total_dist = 0.0
+    # --- MODIFICA: ESCLUSIONE PORTIERE ---
+    # Assumiamo che il portiere avversario sia quello con la X più alta
+    # (più lontano dalla nostra porta che è a X=0)
+    if len(opps) > 0:
+        gk_idx = np.argmax(opps[:, 0]) # Indice del giocatore con X max
+        # Rimuoviamo il portiere dalla lista degli avversari da marcare
+        targets = np.delete(opps, gk_idx, axis=0)
+    else:
+        targets = opps
+        
+    sum_sq_dist = 0.0
     
-    # Per ogni avversario, trova il nostro giocatore più vicino
-    for opp in opps:
+    # Se non ci sono avversari (caso limite), costo 0
+    if len(targets) == 0:
+        if detailed: return {"total": 0.0, "avg_dist": 0.0}
+        return 0.0
+    
+    # Per ogni avversario di movimento, trova il nostro giocatore più vicino
+    for opp in targets:
         dists = np.linalg.norm(home - opp, axis=1)
         min_d = np.min(dists)
-        total_dist += min_d
+        
+        # Penalità Quadratica (per punire severamente l'uomo lasciato solo)
+        sum_sq_dist += min_d ** 2
 
-    # Normalizziamo un po' (media distanza per avversario)
-    avg_marking_dist = total_dist / max(len(opps), 1)
+    # Normalizziamo sul numero di avversari effettivi (es. 10)
+    cost = sum_sq_dist / len(targets)
+    
+    # Scaling per rendere il numero rilevante per l'ottimizzatore
+    cost_scaled = cost * 10.0
     
     if detailed:
-        return {"total": avg_marking_dist, "avg_dist": avg_marking_dist}
-    return avg_marking_dist
+        # RMSE in metri reali
+        rmse = np.sqrt(sum_sq_dist / len(targets))
+        return {"total": cost_scaled, "avg_dist": rmse}
+    
+    return cost_scaled
 
 def cost_defensive_compactness(df_home, detailed=False):
     """
