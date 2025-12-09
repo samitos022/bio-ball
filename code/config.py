@@ -1,61 +1,77 @@
 # config.py
 
-# =============================================================================
-# PARAMETRI CAMPO E GIOCO
-# =============================================================================
-FIELD_LIMITS = (1.0, 1.0)  # Dimensioni campo standard (x, y)
-OFFSIDE_ATTACK_DIR = 'right'  # Direzione di attacco per il fuorigioco
+# PARAMETRI GENERALI
+FIELD_LIMITS = (1.0, 1.0)
+MIN_DIST_PLAYER = 0.02
+OFFSIDE_ATTACK_DIR = 'right'
 
-# =============================================================================
-# PESI DELLA FUNZIONE OBIETTIVO (OBJECTIVE FUNCTION)
-# =============================================================================
-# Questi sono i pesi che determinano la "tattica". 
-# Optuna potrà modificarli per cambiare il comportamento della squadra.
-OBJ_W_CONSTRAINTS = 100.0   # Peso per penalità "hard" (fuori campo, sovrapposizioni)
-OBJ_W_COVER       = 6.28     # Peso copertura spaziale (Convex Hull)
-OBJ_W_PASS        = 5.67     # Peso qualità linee di passaggio
-OBJ_W_BALL        = 29.26    # Peso supporto al portatore di palla
-OBJ_W_OFFSIDE     = 189.197   # Peso mantenimento linea fuorigioco
+# PARAMETRI CONSTRAINTS (Sempre attivi)
+PENALTY_MAX_THRESHOLD = 5000
+OBJ_W_CONSTRAINTS = 100.0
+PENALTY_W_BOUNDARY   = 100.0
+PENALTY_W_PROXIMITY  = 500.0
+PENALTY_W_TRANSITION = 1.0
+PENALTY_W_ORDER      = 10.0
 
-# =============================================================================
-# PARAMETRI COSTI SPECIFICI
-# =============================================================================
+# PARAMETRI FISICI COSTI
+PASS_MAX_LEN = 0.45
+PASS_BLOCK_THRESHOLD = 0.03
+PASS_W_LONG = 1.5
+PASS_W_ANGLE = 0.5
+PASS_W_BLOCK = 10.0
+PASS_PENALTY_NO_OPTS = 10.0
 
-# --- Costo Passaggi ---
-PASS_BLOCK_THRESHOLD = 0.021080069721557314  # Distanza minima ostacolo-linea per considerare passaggio bloccato
-PASS_W_BLOCK = 8.96           # Penalità se il passaggio è bloccato
-PASS_W_LONG = 1.5            # Penalità per passaggi troppo lunghi
-PASS_W_ANGLE = 0.5           # Penalità per angoli di passaggio difficili
-PASS_MAX_LEN = 0.449          # Lunghezza massima "ideale" (normalizzata 0-1 o in metri/100)
-PASS_PENALTY_NO_OPTS = 10.0  # Penalità extra se non ci sono passaggi sicuri
+# === CONFIGURAZIONE PESI PER FASE ===
+# Se un peso è 0.0, l'obiettivo non viene calcolato per quella fase.
 
-# --- Costo Supporto Palla ---
-BALL_SUPPORT_W_MULT = 5.0    # Moltiplicatore distanza supporto
+PHASE_WEIGHTS = {
+    "Fase difensiva": {
+        # Obiettivi Difensivi
+        "W_MARKING":      15.0,   # Priorità: marcare
+        "W_COMPACTNESS":  10.0,   # Priorità: stare stretti
+        "W_LINE_HEIGHT":  5.0,    # Priorità: tenere la linea alta
+        "W_BALL_PRESS":   20.0,   # Priorità: pressare portatore
+        
+        # Obiettivi Offensivi (Disattivati o irrilevanti)
+        "W_COVERAGE":     0.0,    # Non vogliamo allargarci a caso
+        "W_PASSING":      0.0,    # Non abbiamo la palla
+        "W_OFFSIDE":      0.0     # Noi non andiamo in fuorigioco
+    },
+    
+    "Possesso offensivo": {
+        # Obiettivi Difensivi (Disattivati)
+        "W_MARKING":      0.0,
+        "W_COMPACTNESS":  0.0,
+        "W_LINE_HEIGHT":  0.0,
+        "W_BALL_PRESS":   5.0,    # Ball Support (basso, non affollare)
+        
+        # Obiettivi Offensivi
+        "W_COVERAGE":     20.0,    # Allargare il campo
+        "W_PASSING":      6.0,    # Trovare linee
+        "W_OFFSIDE":      50.0    # Evitare fuorigioco (Regola)
+    },
+    
+    "Possesso difensivo": {
+        # Fase di Costruzione
+        "W_MARKING":      0.0,
+        "W_COMPACTNESS":  2.0,    # Un po' compatti per sicurezza
+        "W_LINE_HEIGHT":  0.0,
+        "W_BALL_PRESS":   15.0,   # Ball Support (Alto, servono appoggi)
+        
+        "W_COVERAGE":     2.0,    # Copertura media
+        "W_PASSING":      15.0,   # Passaggi sicuri priorità assoluta
+        "W_OFFSIDE":      0.0     # Difficile essere in offside in difesa
+    }
+}
 
-# =============================================================================
-# PENALITÀ FISICHE E TATTICHE (CONSTRAINTS)
-# =============================================================================
-PENALTY_MAX_THRESHOLD = 5000 # Se i vincoli superano questo valore, interrompi calcolo fine
-MIN_DIST_PLAYER = 0.02       # Distanza minima tra giocatori (evitare collisioni)
+# PARAMETRI SOLVER
+CMA_MAXITER = 100
+CMA_POPSIZE = 20
+CMA_SIGMA_INIT = 0.05
+CMA_TOLFUN = 1e-4
 
-PENALTY_W_TRANSITION = 1.0   # Costo spostamento (per scenario dinamico)
-PENALTY_W_BOUNDARY   = 100.0 # Costo uscita dal campo
-PENALTY_W_PROXIMITY  = 226.6 # Costo collisione tra giocatori
-PENALTY_W_ORDER      = 10.0  # Mantenimento ordine relativo (dx resta a dx di sx)
-
-# =============================================================================
-# PARAMETRI SOLVER (OTTIMIZZATORI)
-# =============================================================================
-
-# --- Differential Evolution (DE) ---
 DE_MAXITER = 50
 DE_POPSIZE = 20
 DE_MUTATION = (0.5, 1.0)
 DE_RECOMBINATION = 0.7
 DE_TOL = 1e-6
-
-# --- CMA-ES ---
-CMA_MAXITER = 100
-CMA_POPSIZE = 25
-CMA_SIGMA_INIT = 0.0224
-CMA_TOLFUN = 0.00028226547316571903

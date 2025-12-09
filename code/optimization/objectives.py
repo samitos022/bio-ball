@@ -3,63 +3,68 @@ from utils.conversion import flat_to_formation
 from utils.away_reaction import react_away_to_home
 from optimization.constraints import penalty_total
 from optimization.cost_functions import (
-    cost_coverage, cost_offside, cost_passing_lanes, cost_ball_support
+    cost_coverage, cost_passing_lanes, cost_offside_avoidance,
+    cost_marking, cost_defensive_compactness, cost_defensive_line_height,
+    cost_ball_pressure
 )
-
-def calculate_total_cost(df_candidate, obstacles_array, ball_pos, initial_df_ref):
-    """Calcola il costo totale dato un candidato e degli ostacoli (già calcolati)."""
-    
-    # 1. Constraints
-    pos_dict_for_constraints = {
-        "Start": initial_df_ref,
-        "Candidate": df_candidate
-    }
-    c_constraints = penalty_total(pos_dict_for_constraints)
-    if c_constraints > config.PENALTY_MAX_THRESHOLD:
-        return c_constraints * config.OBJ_W_CONSTRAINTS
-
-    # 2. Objectives
-    c_cover    = cost_coverage(df_candidate)
-    c_pass     = cost_passing_lanes(df_candidate, obstacles_array, ball_pos)
-    c_ball     = cost_ball_support(df_candidate, ball_pos)
-    c_offside  = cost_offside(df_candidate, obstacles_array, ball_pos)
-
-    total_cost = (
-        config.OBJ_W_CONSTRAINTS * c_constraints +
-        config.OBJ_W_COVER       * c_cover +
-        config.OBJ_W_PASS        * c_pass +
-        config.OBJ_W_BALL        * c_ball +
-        config.OBJ_W_OFFSIDE     * c_offside
-    )
-    return total_cost
 
 def objective_function(vector, args):
     """
-    Funzione obiettivo unificata.
-    args può essere:
-    - (player_names, obstacles_array, ball_pos, initial_df_ref) -> STATIC
-    - (player_names, initial_away_df, ball_pos, initial_df_ref, 'dynamic') -> DYNAMIC
+    args expected: (player_names, obstacles, ball_pos, initial_df_ref, phase_name, mode)
     """
-    
     player_names = args[0]
     ball_pos = args[2]
     initial_df_ref = args[3]
-    
-    # Ricostruzione formazione
-    df_candidate = flat_to_formation(vector, player_names)
-    
-    # Gestione Dinamica vs Statica
-    if len(args) == 5 and args[4] == 'dynamic':
-        # Caso Dinamico: args[1] è il DataFrame iniziale della difesa
-        initial_away_df = args[1]
-        away_reactive_df = react_away_to_home(
-            home_df=df_candidate,
-            base_away_df=initial_away_df,
-            ball_pos=ball_pos
-        )
-        obstacles_array = away_reactive_df[["x", "y"]].to_numpy()
-    else:
-        # Caso Statico: args[1] è già l'array degli ostacoli
-        obstacles_array = args[1]
+    phase_name = args[4]
+    mode = args[5] # 'static' or 'dynamic'
 
-    return calculate_total_cost(df_candidate, obstacles_array, ball_pos, initial_df_ref)
+    # Ricostruzione
+    df_candidate = flat_to_formation(vector, player_names)
+
+    # Gestione Dinamica (ricalcolo ostacoli)
+    if mode == 'dynamic':
+        initial_away_df = args[1]
+        away_reactive = react_away_to_home(df_candidate, initial_away_df, ball_pos)
+        obstacles_array = away_reactive[["x", "y"]].to_numpy()
+    else:
+        obstacles_array = args[1] # Static obstacles
+
+    # 1. Constraints (Sempre attivi)
+    pos_dict = {"Start": initial_df_ref, "Candidate": df_candidate}
+    c_hard = penalty_total(pos_dict)
+    
+    # Se violiamo i vincoli duri, usciamo subito
+    if c_hard > config.PENALTY_MAX_THRESHOLD:
+        return c_hard * config.OBJ_W_CONSTRAINTS
+
+    # 2. Caricamento Pesi Fase
+    weights = config.PHASE_WEIGHTS.get(phase_name, config.PHASE_WEIGHTS["Fase difensiva"])
+    
+    total_cost = c_hard * config.OBJ_W_CONSTRAINTS
+
+    # 3. Calcolo Obiettivi in base alla Fase
+    # OFFENSIVE / POSSESSION
+    if weights["W_COVERAGE"] > 0:
+        total_cost += cost_coverage(df_candidate) * weights["W_COVERAGE"]
+    
+    if weights["W_PASSING"] > 0:
+        total_cost += cost_passing_lanes(df_candidate, obstacles_array, ball_pos) * weights["W_PASSING"]
+        
+    if weights["W_OFFSIDE"] > 0:
+        total_cost += cost_offside_avoidance(df_candidate, obstacles_array, ball_pos) * weights["W_OFFSIDE"]
+
+    # DEFENSIVE
+    if weights["W_MARKING"] > 0:
+        total_cost += cost_marking(df_candidate, obstacles_array) * weights["W_MARKING"]
+        
+    if weights["W_COMPACTNESS"] > 0:
+        total_cost += cost_defensive_compactness(df_candidate) * weights["W_COMPACTNESS"]
+        
+    if weights["W_LINE_HEIGHT"] > 0:
+        total_cost += cost_defensive_line_height(df_candidate, ball_pos) * weights["W_LINE_HEIGHT"]
+
+    # COMMON (Ball Pressure / Support)
+    if weights["W_BALL_PRESS"] > 0:
+        total_cost += cost_ball_pressure(df_candidate, ball_pos) * weights["W_BALL_PRESS"]
+
+    return total_cost

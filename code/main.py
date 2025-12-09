@@ -1,90 +1,129 @@
 import argparse
 import os
 from datetime import datetime
+import pandas as pd
+import numpy as np
+
+# Utils
 from utils.setup import setup_scenario
 from utils.conversion import flat_to_formation
 from utils.analysis_dynamic import plot_convergence, plot_formation_vertical, plot_formation_with_ball_and_obstacles
 from utils.animation import create_evolution_gif
 from utils.reporting import print_fitness_breakdown
+from utils.away_reaction import react_away_to_home
 
+# Optimization Algorithms
 from optimization.cma_es import run_optimization as run_cma_static
 from optimization.cma_es_dynamic import run_optimization as run_cma_dynamic
 from optimization.differential_evolution import run_de_optimization
 
 def main():
+    # 1. Configurazione Argomenti
     parser = argparse.ArgumentParser(description="Football Formation Optimization")
     
-    # Argomento Modalità
     parser.add_argument("--mode", type=str, default="cma_static", 
                         choices=["cma_static", "cma_dynamic", "de"], 
                         help="Optimization algorithm to use")
     
-    # NUOVO Argomento Scenario
     parser.add_argument("--scenario", type=str, default=None,
-                        help="Name of the scenario in ground_truth.json to use (overrides historical data)")
+                        help="Name of the scenario in ground_truth.json (overrides historical data)")
 
     args = parser.parse_args()
 
-    # 1. Setup Dati (Passando lo scenario)
+    # 2. Setup Dati
     data = setup_scenario(scenario_name=args.scenario)
     
-    phase_home = "Fase difensiva" 
+    # Definiamo la fase su cui lavorare
+    phase_home = "Possesso offensivo" 
+    
     scenario_label = args.scenario if args.scenario else "Storico"
-    print(f"=== RUNNING: {args.mode.upper()} | SCENARIO: {scenario_label} ===")
+    print(f"\n=== RUNNING: {args.mode.upper()} | SCENARIO: {scenario_label} | FASE: {phase_home} ===\n")
 
-    # 2. Selezione Algoritmo
+    # 3. Esecuzione Algoritmo Scelto
+    final_obstacles = None
+    best_vec = None
+    cost_history = []
+
+    # --- CASO 1: CMA-ES STATICO ---
     if args.mode == "cma_static":
         best_vec, cost_history = run_cma_static(
             initial_guess=data["initial_guess"],
             obstacles=data["obstacles_matrix"],
             ball_position=data["ball_position"],
-            player_names=data["starters_home"]
+            player_names=data["starters_home"],
+            phase_name=phase_home
         )
         final_obstacles = data["obstacles_matrix"]
 
+    # --- CASO 2: CMA-ES DINAMICO ---
     elif args.mode == "cma_dynamic":
         best_vec, cost_history = run_cma_dynamic(
             initial_guess=data["initial_guess"],
             initial_away_df=data["df_away_start"],
             ball_position=data["ball_position"],
-            player_names=data["starters_home"]
+            player_names=data["starters_home"],
+            phase_name=phase_home
         )
-        # Nota: in dinamico, gli ostacoli finali dipendono dalla soluzione trovata.
-        # Per il plot finale statico usiamo la base (TODO: ricalcolare la reazione)
-        final_obstacles = data["obstacles_matrix"] 
+        # Ricalcoliamo la reazione finale per il plot corretto
+        # Qui best_vec è un array numpy, dobbiamo convertirlo prima di passarlo a react_away
+        final_home_df = flat_to_formation(best_vec, data["starters_home"])
+        final_away_df = react_away_to_home(
+            final_home_df, 
+            data["df_away_start"], 
+            data["ball_position"]
+        )
+        final_obstacles = final_away_df[["x", "y"]].to_numpy()
 
+    # --- CASO 3: DIFFERENTIAL EVOLUTION ---
     elif args.mode == "de":
         best_vec, best_cost, cost_history = run_de_optimization(
             initial_guess=data["initial_guess"],
             initial_away_df=data["df_away_start"],
             ball_position=data["ball_position"],
-            player_names=data["starters_home"]
+            player_names=data["starters_home"],
+            phase_name=phase_home
         )
-        final_obstacles = data["obstacles_matrix"]
+        
+        final_home_df = flat_to_formation(best_vec, data["starters_home"])
+        final_away_df = react_away_to_home(
+            final_home_df, 
+            data["df_away_start"], 
+            data["ball_position"]
+        )
+        final_obstacles = final_away_df[["x", "y"]].to_numpy()
 
-    # 3. Risultati e Plotting
-    print(f"[RESULT] Optimization finished.")
-    
+    print(f"\n[RESULT] Optimization finished.")
+
+    # 4. Report Dettagliato
     print_fitness_breakdown(
         formation_data=best_vec,
         player_names=data["starters_home"],
         obstacles=final_obstacles,
         ball_pos=data["ball_position"],
-        initial_df_ref=data["df_home_start"]
-        )
-
-    output_folder = f"results_plots/{args.mode}_{phase_home}"
+        initial_df_ref=data["df_home_start"],
+        phase_name=phase_home
+    )
+    
+    # 5. Salvataggio Risultati e Plot
+    output_folder = f"results_plots/{args.mode}_{phase_home.replace(' ', '_')}"
     os.makedirs(output_folder, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Plot Convergenza
+    # === CORREZIONE FONDAMENTALE ===
+    # Convertiamo il vettore grezzo (best_vec) in DataFrame PRIMA di plottare
+    # Questo risolve l'IndexError
+    best_fmt_df = flat_to_formation(best_vec, data["starters_home"])
+    # ===============================
+
+    # A. Plot Convergenza
     plot_convergence(
         cost_history, 
         os.path.join(output_folder, f"convergence_{timestamp}.png")
     )
 
+    # B. Plot Orizzontale (Passiamo il DataFrame)
     plot_formation_with_ball_and_obstacles(
-        best_vec,
+        best_fmt_df,  # <--- USIAMO IL DATAFRAME QUI
         f"Formazione Ottimizzata - {phase_home}",
         team='Home',
         color='blue',
@@ -92,9 +131,9 @@ def main():
         obstacles=final_obstacles,
     )
 
-    # Plot Formazione Verticale
+    # C. Plot Verticale (Passiamo il DataFrame)
     plot_formation_vertical(
-        best_vec,
+        best_fmt_df,  # <--- E QUI
         f"{args.mode.upper()} Optimized - {phase_home}",
         team="Home",
         color="blue",
@@ -103,7 +142,7 @@ def main():
         save_path=os.path.join(output_folder, f"formation_{timestamp}.png")
     )
     
-    print(f"Results saved in {output_folder}")
+    print(f"Grafici salvati in: {output_folder}")
 
 if __name__ == "__main__":
     main()
