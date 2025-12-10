@@ -1,85 +1,103 @@
 import numpy as np
-import pandas as pd
+import pandas as pd  
 
 def react_away_to_home(
     home_df,
     base_away_df,
     ball_pos,
-    shift_horizontal=0.40,     # Aumentato → scalatura laterale molto più forte
-    shift_vertical=0.30,       # Aumentato → squadra sale/aggressiva
-    marking_strength=0.6,     # Aumentato → marcatura stretta
-    pressing_force=0.1,       # NUOVO → va direttamente verso la palla
-    role_constraints=True
+    keeper_factor=0.03,
+    block_lateral=0.40,     # molto più forte → squadra slitta verso lato palla
+    block_vertical=0.30,    # sale/scende molto di più → più realistica
+    shape_compactness=0.35, # compattezza reparti
+    marking_factor=0.18,    # marcatura più evidente
+    max_marking_distance=0.25,
+    pressing_players=3,     # aumenta giocatori che reagiscono
+    pressing_factor=0.18    # pressing più "vero"
 ):
+    away = base_away_df.copy().reset_index(drop=True)
 
-    # Copia per sicurezza
-    away = base_away_df.copy()
-
-    # ===============================
-    # 1) SCALATA ORIZZONTALE
-    # ===============================
-    shift_y = (ball_pos[1] - 0.5) * shift_horizontal
-    away["y"] += shift_y
-
-    # ===============================
-    # 2) SCALATA VERTICALE
-    # ===============================
-    dist_ball_x = ball_pos[0] - 0.5
-    shift_x = dist_ball_x * shift_vertical
-    away["x"] -= shift_x  
-
-    # ===============================
-    # 3) REPARTI
-    # ===============================
     n = len(away)
+    keeper_idx = 0
+    field_idx = np.arange(1, n)
 
-    if role_constraints and n >= 10:
-        defenders_idx = range(0, 4)
-        midfield_idx = range(4, 8)
-        forwards_idx = range(8, 11)
+    away_xy = away[["x", "y"]].to_numpy(float)
+    home_xy = home_df[["x", "y"]].to_numpy(float)
+    ball_pos = np.asarray(ball_pos, float)
 
-        # Difensori → aggressività media (non vogliamo suicidi difensivi)
-        away.iloc[defenders_idx, away.columns.get_loc("x")] += shift_x * 0.6
-        away.iloc[defenders_idx, away.columns.get_loc("y")] += shift_y * 0.7
+    # ================
+    # 1) SCALATA DEL BLOCCO
+    # ================
+    mean_x = away_xy[field_idx, 0].mean()
+    mean_y = away_xy[field_idx, 1].mean()
 
-        # Centrocampo → molto aggressivi
-        away.iloc[midfield_idx, away.columns.get_loc("x")] += shift_x * 1.4
-        away.iloc[midfield_idx, away.columns.get_loc("y")] += shift_y * 1.6
+    # LATERALE verso il lato palla
+    away_xy[field_idx, 1] += (ball_pos[1] - mean_y) * block_lateral
 
-        # Attaccanti → ultra-aggressivi (pressano in avanti)
-        away.iloc[forwards_idx, away.columns.get_loc("x")] += shift_x * 1.8
-        away.iloc[forwards_idx, away.columns.get_loc("y")] += shift_y * 2.0
+    # VERTICALE verso la profondità palla
+    away_xy[field_idx, 0] += (ball_pos[0] - mean_x) * block_vertical
 
-    # ===============================
-    # 4) MARCATURA INDIVIDUALE
-    # ===============================
-    home_positions = home_df[["x","y"]].values
-    away_positions = away[["x","y"]].values
+    # ================
+    # 2) ASSEGNAZIONE DEI REPARTI
+    # ================
+    ordered = field_idx[np.argsort(away_xy[field_idx, 0])]
 
-    for i in range(len(away_positions)):
-        dists = np.linalg.norm(home_positions - away_positions[i], axis=1)
-        closest_idx = np.argmin(dists)
+    if len(ordered) >= 10:
+        DEF = ordered[0:4]
+        MID = ordered[4:7]
+        ATT = ordered[7:10]
+    else:
+        # fallback semplice
+        k = len(ordered)//3
+        DEF = ordered[:k]
+        MID = ordered[k:2*k]
+        ATT = ordered[2*k:]
 
-        target = home_positions[closest_idx]
-        current = away_positions[i]
-        vec = target - current
+    # DIFESA: compatta
+    away_xy[DEF] += (away_xy[DEF].mean(axis=0) - away_xy[DEF]) * shape_compactness
 
-        # marcatura più aggressiva
-        away.iloc[i, away.columns.get_loc("x")] += marking_strength * vec[0]
-        away.iloc[i, away.columns.get_loc("y")] += marking_strength * vec[1]
+    # CENTROCAMPO: più dinamico
+    away_xy[MID] += (away_xy[MID].mean(axis=0) - away_xy[MID]) * (shape_compactness * 0.6)
 
-    # ===============================
-    # 5) PRESSING DIRETTO SULLA PALLA
-    # ===============================
-    for i in range(len(away_positions)):
-        vec_to_ball = np.array(ball_pos) - away_positions[i]
-        away.iloc[i, away.columns.get_loc("x")] += pressing_force * vec_to_ball[0]
-        away.iloc[i, away.columns.get_loc("y")] += pressing_force * vec_to_ball[1]
+    # ATTACCO: reagisce molto alla palla
+    away_xy[ATT] += (ball_pos - away_xy[ATT]) * 0.25
 
-    # ===============================
-    # 6) CLIP DEI VALORI
-    # ===============================
-    away["x"] = away["x"].clip(0.0, 1.0)
-    away["y"] = away["y"].clip(0.0, 1.0)
+
+    # ================
+    # 3) MARCATURA UOMO (MODERATA)
+    # ================
+    for i in field_idx:
+        dists = np.linalg.norm(home_xy - away_xy[i], axis=1)
+        closest = np.argmin(dists)
+
+        vec = home_xy[closest] - away_xy[i]
+        d = np.linalg.norm(vec)
+
+        if d < max_marking_distance:
+            away_xy[i] += marking_factor * vec
+
+
+    # ================
+    # 4) PRESSING (3 giocatori più vicini)
+    # ================
+    ball_dists = np.linalg.norm(away_xy[field_idx] - ball_pos, axis=1)
+    press = field_idx[np.argsort(ball_dists)[:pressing_players]]
+
+    for i in press:
+        away_xy[i] += pressing_factor * (ball_pos - away_xy[i])
+
+
+    # ================
+    # 5) PORTIERE (quasi fermo)
+    # ================
+    gk = away_xy[keeper_idx]
+    if ball_pos[0] > 0.80:
+        away_xy[keeper_idx] += keeper_factor * (ball_pos - gk)
+
+
+    # ================
+    # 6) CLIP CAMPO
+    # ================
+    away_xy = np.clip(away_xy, 0, 1)
+    away["x"], away["y"] = away_xy[:, 0], away_xy[:, 1]
 
     return away

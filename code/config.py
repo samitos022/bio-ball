@@ -18,9 +18,14 @@ PASS_MAX_LEN = 0.45
 PASS_BLOCK_THRESHOLD = 0.03
 PASS_W_LONG = 1.5
 PASS_W_ANGLE = 0.5
-#PASS_W_BLOCK = 10.0
-PASS_W_BLOCK: 8.2241
+PASS_W_BLOCK = 10.0
 PASS_PENALTY_NO_OPTS = 10.0
+
+# NUOVI PARAMETRI SATURAZIONE
+# Punteggio di qualità cumulativo target. 
+# Una volta raggiunto questo score, il costo scende drasticamente verso zero.
+PASS_TARGET_SCORE_OFF = 2.5  # Attacco: bastano ~2 passaggi di alta qualità (verticali)
+PASS_TARGET_SCORE_DEF = 3.5  # Difesa: servono ~3-4 passaggi sicuri (anche laterali)
 
 # === CONFIGURAZIONE PESI PER FASE ===
 # Se un peso è 0.0, l'obiettivo non viene calcolato per quella fase.
@@ -42,17 +47,16 @@ PHASE_WEIGHTS = {
     
     "Possesso offensivo": {
         "W_MARKING": 2.6146,
-        "W_COVERAGE": 44.7123,
+        "W_COVERAGE": 34.7123,
         "W_PASSING": 10.2512,
         "W_OFFSIDE": 38.8458,
-        "W_BALL_PRESS": 3.8853,
+        "W_BALL_PRESS": 30.0,
         
 
         # Obiettivi Difensivi (Disattivati)
         #"W_MARKING":      0.0,
         "W_COMPACTNESS":  0.0,
         "W_LINE_HEIGHT":  0.0,
-        #"W_BALL_PRESS":   5.0,    # Ball Support (basso, non affollare)
         
         # Obiettivi Offensivi
         "W_COVERAGE":     20.0,    # Allargare il campo

@@ -31,11 +31,11 @@ def main():
     args = parser.parse_args()
 
     # Definiamo la fase su cui lavorare
-    phase_home = "Possesso difensivo" 
+    phase_home = "Possesso offensivo" 
     phase_away = "Fase difensiva"
 
     # 2. Setup Dati
-    data = setup_scenario(phase_home=phase_home, phase_away= phase_away, scenario_name=args.scenario)
+    data = setup_scenario(phase_home=phase_home, phase_away=phase_away, scenario_name=args.scenario)
     
     scenario_label = args.scenario if args.scenario else "Storico"
     print(f"\n=== RUNNING: {args.mode.upper()} | SCENARIO: {scenario_label} | FASE: {phase_home} ===\n")
