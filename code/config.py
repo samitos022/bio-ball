@@ -66,7 +66,7 @@ PHASE_WEIGHTS = {
         "W_MARKING":      0.0,
         "W_COMPACTNESS":  8.0,    # Un po' compatti per sicurezza
         "W_LINE_HEIGHT":  50.0,
-        "W_BALL_PRESS":   50.0,   # Ball Support (Alto, servono appoggi)
+        "W_BALL_PRESS":   70.0,   # Ball Support (Alto, servono appoggi)
         
         "W_COVERAGE":     25.0,    # Copertura media
         "W_PASSING":      7.0,   # Passaggi sicuri priorità assoluta
