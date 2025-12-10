@@ -5,7 +5,7 @@ from optimization.constraints import penalty_total
 from optimization.cost_functions import (
     cost_coverage, cost_passing_lanes, cost_offside_avoidance,
     cost_marking, cost_defensive_compactness, cost_defensive_line_height,
-    cost_ball_pressure
+    cost_ball_pressure, cost_preventive_marking
 )
 
 def objective_function(vector, args):
@@ -64,7 +64,8 @@ def objective_function(vector, args):
         total_cost += cost_defensive_compactness(df_candidate) * weights["W_COMPACTNESS"]
         
     if weights["W_LINE_HEIGHT"] > 0:
-        total_cost += cost_defensive_line_height(df_candidate, ball_pos) * weights["W_LINE_HEIGHT"]
+        opt_h = 0.4 if phase_name == "Possesso offensivo" else 0.3
+        total_cost += cost_defensive_line_height(df_candidate, ball_pos, optimal_height=opt_h) * weights["W_LINE_HEIGHT"]
 
     # COMMON (Ball Pressure / Support)
     if weights["W_BALL_PRESS"] > 0:

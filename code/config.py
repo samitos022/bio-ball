@@ -2,16 +2,16 @@
 
 # PARAMETRI GENERALI
 FIELD_LIMITS = (1.0, 1.0)
-MIN_DIST_PLAYER = 0.02
+MIN_DIST_PLAYER = 0.12
 OFFSIDE_ATTACK_DIR = 'right'
 
 # PARAMETRI CONSTRAINTS (Sempre attivi)
 PENALTY_MAX_THRESHOLD = 5000
-OBJ_W_CONSTRAINTS = 100.0
+OBJ_W_CONSTRAINTS = 50.0
 PENALTY_W_BOUNDARY   = 100.0
-PENALTY_W_PROXIMITY  = 500.0
-PENALTY_W_TRANSITION = 1.0
-PENALTY_W_ORDER      = 10.0
+PENALTY_W_PROXIMITY  = 50.0
+PENALTY_W_TRANSITION = 0.1
+PENALTY_W_ORDER      = 5.0
 
 # PARAMETRI FISICI COSTI
 PASS_MAX_LEN = 0.45
@@ -64,21 +64,21 @@ PHASE_WEIGHTS = {
     "Possesso difensivo": {
         # Fase di Costruzione
         "W_MARKING":      0.0,
-        "W_COMPACTNESS":  2.0,    # Un po' compatti per sicurezza
-        "W_LINE_HEIGHT":  0.0,
-        "W_BALL_PRESS":   15.0,   # Ball Support (Alto, servono appoggi)
+        "W_COMPACTNESS":  8.0,    # Un po' compatti per sicurezza
+        "W_LINE_HEIGHT":  50.0,
+        "W_BALL_PRESS":   50.0,   # Ball Support (Alto, servono appoggi)
         
-        "W_COVERAGE":     2.0,    # Copertura media
-        "W_PASSING":      15.0,   # Passaggi sicuri priorità assoluta
-        "W_OFFSIDE":      0.0,     # Difficile essere in offside in difesa
-        "W_PREV_MARKING":   5.0 
+        "W_COVERAGE":     25.0,    # Copertura media
+        "W_PASSING":      7.0,   # Passaggi sicuri priorità assoluta
+        "W_OFFSIDE":      1000.0,     # Difficile essere in offside in difesa
+        "W_PREV_MARKING": 8.0 
     }
 }
 
 # PARAMETRI SOLVER
 CMA_MAXITER = 100
 CMA_POPSIZE = 20
-CMA_SIGMA_INIT = 0.05
+CMA_SIGMA_INIT = 0.15
 CMA_TOLFUN = 1e-4
 
 DE_MAXITER = 50
