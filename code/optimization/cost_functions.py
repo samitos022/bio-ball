@@ -32,28 +32,31 @@ def cost_coverage(df, detailed=False):
     if detailed: return {"total": cost, "raw_area": area}
     return cost
 
-def cost_passing_lanes(df_home, obstacles_array, ball_pos, detailed=False):
-    """
-    Nuova logica: Premia la DISPONIBILITÀ di passaggi (quantità e qualità), 
-    NON penalizza il fatto che alcuni compagni lontani siano marcati.
-    """
+def cost_passing_lanes(df_home, obstacles_array, ball_pos, phase_type="Possesso offensivo", detailed=False):
+    # ... (parte iniziale invariata) ...
     home = df_home[['x', 'y']].values
+    player_names = df_home.index.tolist() # <--- RECUPERIAMO I NOMI
     n = len(home)
+    
     dists = np.linalg.norm(home - ball_pos, axis=1)
     ball_carrier_idx = np.argmin(dists) 
     p1 = home[ball_carrier_idx]
+    ball_carrier_name = player_names[ball_carrier_idx] # <--- NOME PORTATORE
 
-    # Parametri interni
-    MIN_OPTIONS_NEEDED = 3 # Vogliamo almeno 3 scarichi sicuri
-    
+    total_quality_score = 0.0
     valid_options_count = 0
-    quality_score_sum = 0.0
+    blocked_count = 0
     
-    pen_block_debug = 0 # Solo per report
-    
+    valid_receivers = [] # <--- LISTA PER I NOMI
+
+    # Parametri specifici per fase
+    is_offensive = "offensivo" in phase_type.lower()
+    target_score = config.PASS_TARGET_SCORE_OFF if is_offensive else config.PASS_TARGET_SCORE_DEF
+
     for j in range(n):
         if j == ball_carrier_idx: continue
         p2 = home[j]
+        receiver_name = player_names[j] # <--- NOME RICEVITORE
         
         # 1. Check Blocco
         block = False
@@ -63,52 +66,44 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos, detailed=False):
                 break
         
         if block:
-            pen_block_debug += 1
-            continue # Passaggio bloccato: lo ignoriamo, non lo penalizziamo!
+            blocked_count += 1
+            continue 
             
-        # 2. Se passa il blocco, valutiamo la qualità
+        # 2. Check Lunghezza/Vicinanza
         dist = np.linalg.norm(p1 - p2)
-        
-        # Ignoriamo passaggi troppo lunghi (non contano come opzioni valide)
-        if dist > config.PASS_MAX_LEN:
-            continue
-            
-        # Ignoriamo passaggi troppo corti (ammucchiata inutile)
-        if dist < 0.05: # 5 metri
-            continue
+        if dist > config.PASS_MAX_LEN: continue
+        if dist < 0.05: continue
 
-        # Calcolo Score Qualità (Angolo + Distanza ideale)
-        ang_score = angle_score(p1, p2) # 1.0 se avanti, 0.0 se indietro
-        
-        # Un passaggio è un'opzione valida
+        # Calcolo Score
+        pass_val = 1.0
+        if is_offensive:
+            ang = angle_score(p1, p2)
+            angle_multiplier = 1.0 + (ang * 0.5) 
+            pass_val *= angle_multiplier
+        else:
+            if dist > 0.20: pass_val *= 0.8
+
+        total_quality_score += pass_val
         valid_options_count += 1
-        quality_score_sum += ang_score
+        
+        # AGGIUNGIAMO ALLA LISTA (Nome + Score formattato)
+        valid_receivers.append(f"{receiver_name} ({pass_val:.1f})")
 
-    # --- CALCOLO COSTO ---
-    # L'obiettivo è minimizzare il costo.
-    # Se abbiamo poche opzioni, costo alto.
-    # Se abbiamo tante opzioni, costo basso (o addirittura negativo/bonus).
-    
-    missing_options = max(0, MIN_OPTIONS_NEEDED - valid_options_count)
-    
-    # Penalità enorme se non hai opzioni (es. 10.0 per ogni opzione mancante)
-    cost_quantity = missing_options * config.PASS_PENALTY_NO_OPTS
-    
-    # Bonus qualità: più alto è lo score, più abbassiamo la fitness (reward)
-    # Moltiplichiamo per un fattore piccolo per raffinare
-    reward_quality = quality_score_sum * 0.5
-    
-    total_cost = cost_quantity - reward_quality
+    # ... (Calcolo costo finale invariato) ...
+    cost = config.PASS_PENALTY_NO_OPTS * np.exp(-total_quality_score / target_score)
 
     if detailed:
         return {
-            "total": total_cost,
-            "valid_options": valid_options_count,
-            "missing_options": missing_options,
-            "blocked_count_debug": pen_block_debug
+            "total": cost,
+            "quality_score": total_quality_score,
+            "target_score": target_score,
+            "valid_count": valid_options_count,
+            "blocked_count": blocked_count,
+            "carrier": ball_carrier_name,      # <--- RESTITUIAMO CHI HA LA PALLA
+            "receivers": valid_receivers       # <--- RESTITUIAMO LA LISTA
         }
         
-    return total_cost
+    return cost
 
 def cost_offside_avoidance(df_home, obstacles_array, ball_pos, attacking_dir='right', detailed=False):
     """(Offensive) Penalizes players who are offside."""
@@ -228,7 +223,7 @@ def cost_ball_pressure(df_home, ball_pos, detailed=False):
     min_dist = np.min(dists)
     
     # Fattore di scala per renderlo significativo
-    cost = min_dist * 5.0 
+    cost = min_dist * 20.0 
     
     if detailed: return {"total": cost, "dist": min_dist}
     return cost

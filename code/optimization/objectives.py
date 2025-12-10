@@ -48,7 +48,7 @@ def objective_function(vector, args):
         total_cost += cost_coverage(df_candidate) * weights["W_COVERAGE"]
     
     if weights["W_PASSING"] > 0:
-        total_cost += cost_passing_lanes(df_candidate, obstacles_array, ball_pos) * weights["W_PASSING"]
+        total_cost += cost_passing_lanes(df_candidate, obstacles_array, ball_pos, phase_type=phase_name) * weights["W_PASSING"]
         
     if weights["W_OFFSIDE"] > 0:
         total_cost += cost_offside_avoidance(df_candidate, obstacles_array, ball_pos) * weights["W_OFFSIDE"]
