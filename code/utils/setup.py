@@ -6,7 +6,10 @@ from utils.load_data import load_and_clean_metrica_tracking, load_match
 from utils.analysis_dynamic import average_positions, starters, prepare_obstacles
 from utils.initial_pop import average_ball_positions
 
-def setup_scenario(game_dir='data/metrica/sample_game_1', 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_DATA_DIR = os.path.join(BASE_DIR, 'data', 'metrica', 'sample_game_1')
+
+def setup_scenario(game_dir=DEFAULT_DATA_DIR, 
                    phase_home="Fase difensiva", 
                    phase_away="Possesso offensivo",
                    scenario_name=None):
