@@ -35,7 +35,8 @@ PHASE_WEIGHTS = {
         # Obiettivi Offensivi (Disattivati o irrilevanti)
         "W_COVERAGE":     0.0,    # Non vogliamo allargarci a caso
         "W_PASSING":      0.0,    # Non abbiamo la palla
-        "W_OFFSIDE":      0.0     # Noi non andiamo in fuorigioco
+        "W_OFFSIDE":      0.0,     # Noi non andiamo in fuorigioco
+        "W_PREV_MARKING": 0.0
     },
     
     "Possesso offensivo": {
@@ -48,7 +49,8 @@ PHASE_WEIGHTS = {
         # Obiettivi Offensivi
         "W_COVERAGE":     20.0,    # Allargare il campo
         "W_PASSING":      6.0,    # Trovare linee
-        "W_OFFSIDE":      50.0    # Evitare fuorigioco (Regola)
+        "W_OFFSIDE":      50.0,    # Evitare fuorigioco (Regola)
+        "W_PREV_MARKING": 15.0
     },
     
     "Possesso difensivo": {
@@ -60,7 +62,8 @@ PHASE_WEIGHTS = {
         
         "W_COVERAGE":     2.0,    # Copertura media
         "W_PASSING":      15.0,   # Passaggi sicuri priorità assoluta
-        "W_OFFSIDE":      0.0     # Difficile essere in offside in difesa
+        "W_OFFSIDE":      0.0,     # Difficile essere in offside in difesa
+        "PREV_MARKING":   5.0 
     }
 }
 

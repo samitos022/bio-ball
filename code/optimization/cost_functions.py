@@ -18,18 +18,27 @@ def angle_score(p_i, p_j, team_direction=np.array([1.0, 0.0])):
 
 # --- OFFENSIVE OBJECTIVES ---
 
-def cost_coverage(df, detailed=False):
-    """(Offensive) Maximizes Pitch Coverage (1 - Area)"""
+def cost_coverage(df):
     points = df[['x', 'y']].values
+    
+    # Calcolo Convex Hull base
     area = 0.0
     if len(points) >= 3:
         try:
-            area = ConvexHull(points).volume
+            hull = ConvexHull(points)
+            area = hull.volume
         except:
             area = 0.0
     
-    cost = 1.0 - area
-    if detailed: return {"total": cost, "raw_area": area}
+    # Calcolo baricentro X
+    avg_x = np.mean(points[:, 0])
+    
+    # Bonus se il baricentro è avanzato (spingere la squadra in avanti)
+    advancement_bonus = avg_x * 0.5 
+    
+    # Costo base (1 - area) ridotto dal bonus avanzamento
+    cost = (1.0 - area) - advancement_bonus
+    
     return cost
 
 def cost_passing_lanes(df_home, obstacles_array, ball_pos, detailed=False):
@@ -216,6 +225,28 @@ def cost_defensive_line_height(df_home, ball_pos, detailed=False):
     if detailed:
         return {"total": total, "line_x": last_defender_x}
     return total
+
+def cost_preventive_marking(df_home, obstacles_array):
+    """
+    (Possesso Offensivo) Marcatura Preventiva.
+    Ci interessa marcare SOLO gli avversari che sono rimasti alti (vicino alla nostra porta, x bassa).
+    Quelli che sono rientrati in difesa non ci preoccupano per il contropiede.
+    """
+    home = df_home[['x', 'y']].values
+    
+    # Identifichiamo le "minacce": avversari con X < 0.4 (nella nostra trequarti)
+    threats = [opp for opp in obstacles_array if opp[0] < 0.4]
+    
+    if not threats: return 0.0 # Nessuna minaccia preventiva
+    
+    cost = 0.0
+    for threat in threats:
+        # Trova il nostro difensore più vicino a questa minaccia
+        dists = np.linalg.norm(home - threat, axis=1)
+        min_d = np.min(dists)
+        cost += min_d
+        
+    return cost * 5.0
 
 # --- COMMON ---
 

@@ -52,6 +52,9 @@ def objective_function(vector, args):
         
     if weights["W_OFFSIDE"] > 0:
         total_cost += cost_offside_avoidance(df_candidate, obstacles_array, ball_pos) * weights["W_OFFSIDE"]
+    
+    if weights["W_PREV_MARKING"] > 0:
+        total_cost += cost_preventive_marking(df_candidate, obstacles_array) * weights["W_PREV_MARKING"]
 
     # DEFENSIVE
     if weights["W_MARKING"] > 0:
