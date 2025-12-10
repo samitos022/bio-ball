@@ -18,43 +18,6 @@ def angle_score(p_i, p_j, team_direction=np.array([1.0, 0.0])):
     return (np.dot(v/norm, team_direction) + 1) / 2
 
 def exclude_goalkeeper(df_home):
-    """
-    Rimuove il portiere dalla formazione (assumendo che sia il giocatore con X minima).
-    Restituisce un DataFrame o array con 10 giocatori.
-    """
-    # Se il DataFrame ha le colonne x, y, troviamo l'indice con x minimo
-    if isinstance(df_home, pd.DataFrame):
-        # Assumiamo che il portiere sia quello più vicino alla linea di fondo (x=0)
-        # Nota: questo funziona se attacchiamo verso destra (x=1) e difendiamo x=0.
-        gk_idx = df_home['x'].idxmin()
-        return df_home.drop(index=gk_idx)
-    
-    # Se è un array numpy
-    min_x_idx = np.argmin(df_home[:, 0])
-    return np.delete(df_home, min_x_idx, axis=0)
-
-# --- OFFENSIVE OBJECTIVES ---
-
-import numpy as np
-import pandas as pd
-from scipy.spatial import ConvexHull
-import config
-
-# --- HELPER FUNCTIONS ---
-def point_line_distance(point, a, b):
-    a, b, p = np.array(a), np.array(b), np.array(point)
-    if np.all(a == b): return np.linalg.norm(p - a)
-    t = np.dot(p - a, b - a) / np.dot(b - a, b - a)
-    t = np.clip(t, 0, 1)
-    return np.linalg.norm(p - (a + t * (b - a)))
-
-def angle_score(p_i, p_j, team_direction=np.array([1.0, 0.0])):
-    v = p_j - p_i
-    norm = np.linalg.norm(v)
-    if norm == 0: return 0.0
-    return (np.dot(v/norm, team_direction) + 1) / 2
-
-def exclude_goalkeeper(df_home):
     """Rimuove il portiere (giocatore con X minima)."""
     if isinstance(df_home, pd.DataFrame):
         gk_idx = df_home['x'].idxmin()
@@ -62,12 +25,7 @@ def exclude_goalkeeper(df_home):
     min_x_idx = np.argmin(df_home[:, 0])
     return np.delete(df_home, min_x_idx, axis=0)
 
-# =============================================================================
-# 1. FUNZIONI OFFENSIVE
-# =============================================================================
-
-import numpy as np
-
+# --- OFFENSIVE OBJECTIVES ---
 def cost_coverage(df, detailed=False):
     """
     Copertura campo basata su griglia semplice.
