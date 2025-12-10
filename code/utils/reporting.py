@@ -5,7 +5,7 @@ from optimization.constraints import penalty_total
 from optimization.cost_functions import (
     cost_coverage, cost_passing_lanes, cost_offside_avoidance,
     cost_marking, cost_defensive_compactness, cost_defensive_line_height,
-    cost_ball_pressure
+    cost_ball_pressure, cost_preventive_marking
 )
 
 def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, initial_df_ref, phase_name):
@@ -50,7 +50,7 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         cost = res["total"] * weights["W_COVERAGE"]
         total_fitness += cost
         print(f"\033[1m{'Coverage (Massimizza Area)':<45} | {res['total']:<12.4f} | {weights['W_COVERAGE']:<8} | {cost:<12.4f}\033[0m")
-        print(f"  └─ Area Reale (Hull): {res['raw_area']:.4f} (Target: 1.0)")
+        print(f"  └─ Coverage ratio: {res['coverage_ratio']:.4f}")
 
     # Passing Lanes
     if weights.get("W_PASSING", 0) > 0:
@@ -83,6 +83,14 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         print(f"\033[1m{'Offside Avoidance':<45} | {res['total']:<12.4f} | {weights['W_OFFSIDE']:<8} | {cost:<12.4f}\033[0m")
         if res['total'] > 0:
             print(f"  └─ Metri oltre la linea: {res['meters']:.4f}")
+    
+    if weights.get("W_PREV_MARKING", 0) > 0:
+        res = cost_preventive_marking(df, obstacles, detailed=True)
+        c = res["total"] * weights["W_PREV_MARKING"]
+        total_fitness += c
+        print(f"\033[1m{'Preventive Marking':<45} | {res['total']:<12.4f} | {weights['W_PREV_MARKING']:<8} | {c:<12.4f}\033[0m")
+        print(f"  └─ Threats: {res['threats']:.4f}")
+
 
     # --- 3. OBIETTIVI DIFENSIVI ---
 

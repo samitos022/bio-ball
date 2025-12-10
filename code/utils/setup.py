@@ -6,7 +6,7 @@ from utils.load_data import load_and_clean_metrica_tracking, load_match
 from utils.analysis_dynamic import average_positions, starters, prepare_obstacles
 from utils.initial_pop import average_ball_positions
 
-def setup_scenario(game_dir='code/data/metrica/sample_game_1', 
+def setup_scenario(game_dir='data/metrica/sample_game_1', 
                    phase_home="Fase difensiva", 
                    phase_away="Possesso offensivo",
                    scenario_name=None):
@@ -41,7 +41,7 @@ def setup_scenario(game_dir='code/data/metrica/sample_game_1',
 
     # 2. OVERRIDE CON SCENARIO JSON (Se richiesto)
     if scenario_name:
-        json_path = "code/data/formations/ground_truth.json"
+        json_path = "data/formations/ground_truth.json"
         try:
             with open(json_path, "r") as f:
                 full_db = json.load(f)
