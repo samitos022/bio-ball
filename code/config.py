@@ -18,7 +18,8 @@ PASS_MAX_LEN = 0.45
 PASS_BLOCK_THRESHOLD = 0.03
 PASS_W_LONG = 1.5
 PASS_W_ANGLE = 0.5
-PASS_W_BLOCK = 10.0
+#PASS_W_BLOCK = 10.0
+PASS_W_BLOCK: 8.2241
 PASS_PENALTY_NO_OPTS = 10.0
 
 # === CONFIGURAZIONE PESI PER FASE ===
@@ -40,11 +41,18 @@ PHASE_WEIGHTS = {
     },
     
     "Possesso offensivo": {
+        "W_MARKING": 2.6146,
+        "W_COVERAGE": 44.7123,
+        "W_PASSING": 10.2512,
+        "W_OFFSIDE": 38.8458,
+        "W_BALL_PRESS": 3.8853,
+        
+
         # Obiettivi Difensivi (Disattivati)
-        "W_MARKING":      0.0,
+        #"W_MARKING":      0.0,
         "W_COMPACTNESS":  0.0,
         "W_LINE_HEIGHT":  0.0,
-        "W_BALL_PRESS":   5.0,    # Ball Support (basso, non affollare)
+        #"W_BALL_PRESS":   5.0,    # Ball Support (basso, non affollare)
         
         # Obiettivi Offensivi
         "W_COVERAGE":     20.0,    # Allargare il campo
@@ -63,7 +71,7 @@ PHASE_WEIGHTS = {
         "W_COVERAGE":     2.0,    # Copertura media
         "W_PASSING":      15.0,   # Passaggi sicuri priorità assoluta
         "W_OFFSIDE":      0.0,     # Difficile essere in offside in difesa
-        "PREV_MARKING":   5.0 
+        "W_PREV_MARKING":   5.0 
     }
 }
 

@@ -14,8 +14,8 @@ parser = argparse.ArgumentParser(description="Optuna Tactic Tuning")
 
 parser.add_argument("--scenario", type=str, required=True,
                     help="Name of the scenario in ground_truth.json (Target)")
-parser.add_argument("--phase", type=str, default="Fase difensiva",
-                    choices=["Fase difensiva", "Possesso offensivo", "Possesso difensivo"],
+parser.add_argument("--phase", type=str, default="Fase_difensiva",
+                    choices=["Fase_difensiva", "Possesso_offensivo", "Possesso_difensivo"],
                     help="Which phase weights to tune")
 
 args = parser.parse_args()
@@ -49,7 +49,8 @@ try:
             target_list.append(data["df_home_start"].iloc[i][['x', 'y']].values)
             
     TARGET_POSITIONS = np.array(target_list)
-    print(f"=== TUNING TATTICO PER FASE: {args.phase} ===")
+    phase = args.phase.replace('_', ' ')
+    print(f"=== TUNING TATTICO PER FASE: {phase} ===")
     print(f"Target Scenario: {args.scenario}")
 
 except Exception as e:
@@ -59,11 +60,11 @@ except Exception as e:
 
 def objective(trial):
     # Accediamo al dizionario della fase specifica
-    phase_weights = config.PHASE_WEIGHTS[args.phase]
+    phase_weights = config.PHASE_WEIGHTS[phase]
 
     # --- TUNING DINAMICO IN BASE ALLA FASE ---
     
-    if args.phase == "Fase difensiva":
+    if phase == "Fase difensiva":
         # Tuniamo i pesi difensivi
         phase_weights["W_MARKING"]     = trial.suggest_float("W_MARKING", 10.0, 100.0)
         phase_weights["W_COMPACTNESS"] = trial.suggest_float("W_COMPACTNESS", 1.0, 30.0)
@@ -71,14 +72,15 @@ def objective(trial):
         phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 10.0, 50.0)
         # Disattiviamo gli altri per sicurezza (o li lasciamo a 0 come da config)
         
-    elif args.phase == "Possesso offensivo":
+    elif phase == "Possesso offensivo":
         # Tuniamo i pesi offensivi
+        phase_weights["W_MARKING"]     = trial.suggest_float("W_MARKING", 0.0, 10.0)
         phase_weights["W_COVERAGE"]    = trial.suggest_float("W_COVERAGE", 5.0, 50.0)
         phase_weights["W_PASSING"]     = trial.suggest_float("W_PASSING", 1.0, 20.0)
         phase_weights["W_OFFSIDE"]     = trial.suggest_float("W_OFFSIDE", 10.0, 100.0)
         phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 0.0, 10.0) # Ball support basso
 
-    elif args.phase == "Possesso difensivo":
+    elif phase == "Possesso difensivo":
         phase_weights["W_COVERAGE"]    = trial.suggest_float("W_COVERAGE", 1.0, 10.0)
         phase_weights["W_PASSING"]     = trial.suggest_float("W_PASSING", 10.0, 50.0) # Priorità alta
         phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 10.0, 40.0)
@@ -93,7 +95,7 @@ def objective(trial):
             obstacles=data["obstacles_matrix"],
             ball_position=data["ball_position"],
             player_names=data["starters_home"],
-            phase_name=args.phase  # <--- Importante: passiamo la fase corretta
+            phase_name=phase  # <--- Importante: passiamo la fase corretta
         )
         
         # CALCOLO LOSS (MSE vs TARGET DISEGNATO)
@@ -116,14 +118,14 @@ if __name__ == "__main__":
     print("Avvio ricerca pesi (20 trials)...")
     study.optimize(objective, n_trials=20)
     
-    print(f"\n=== MIGLIORI PESI PER {args.phase.upper()} ===")
+    print(f"\n=== MIGLIORI PESI PER {phase.upper()} ===")
     print(f"Best MSE: {study.best_value:.6f}")
     
     filename = f"best_params_{args.scenario}.txt"
     with open(filename, "w") as f:
         f.write(f"# Parametri ottimizzati per scenario: {args.scenario}\n")
-        f.write(f"# Fase: {args.phase}\n\n")
-        f.write(f'    "{args.phase}": {{\n')
+        f.write(f"# Fase: {phase}\n\n")
+        f.write(f'    "{phase}": \n')
         for k, v in study.best_params.items():
             f.write(f'        "{k}": {v:.4f},\n')
         f.write("    },\n")
