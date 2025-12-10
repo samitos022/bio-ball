@@ -5,7 +5,7 @@ from optimization.constraints import penalty_total
 from optimization.cost_functions import (
     cost_coverage, cost_passing_lanes, cost_offside_avoidance,
     cost_marking, cost_defensive_compactness, cost_defensive_line_height,
-    cost_ball_pressure
+    cost_ball_pressure, cost_preventive_marking
 )
 
 def objective_function(vector, args):
@@ -48,10 +48,13 @@ def objective_function(vector, args):
         total_cost += cost_coverage(df_candidate) * weights["W_COVERAGE"]
     
     if weights["W_PASSING"] > 0:
-        total_cost += cost_passing_lanes(df_candidate, obstacles_array, ball_pos) * weights["W_PASSING"]
+        total_cost += cost_passing_lanes(df_candidate, obstacles_array, ball_pos, phase_type=phase_name) * weights["W_PASSING"]
         
     if weights["W_OFFSIDE"] > 0:
         total_cost += cost_offside_avoidance(df_candidate, obstacles_array, ball_pos) * weights["W_OFFSIDE"]
+    
+    if weights["W_PREV_MARKING"] > 0:
+        total_cost += cost_preventive_marking(df_candidate, obstacles_array) * weights["W_PREV_MARKING"]
 
     # DEFENSIVE
     if weights["W_MARKING"] > 0:
@@ -61,7 +64,8 @@ def objective_function(vector, args):
         total_cost += cost_defensive_compactness(df_candidate) * weights["W_COMPACTNESS"]
         
     if weights["W_LINE_HEIGHT"] > 0:
-        total_cost += cost_defensive_line_height(df_candidate, ball_pos) * weights["W_LINE_HEIGHT"]
+        opt_h = 0.4 if phase_name == "Possesso offensivo" else 0.3
+        total_cost += cost_defensive_line_height(df_candidate, ball_pos, optimal_height=opt_h) * weights["W_LINE_HEIGHT"]
 
     # COMMON (Ball Pressure / Support)
     if weights["W_BALL_PRESS"] > 0:

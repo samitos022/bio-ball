@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.spatial import ConvexHull
 import config
 
@@ -16,44 +17,123 @@ def angle_score(p_i, p_j, team_direction=np.array([1.0, 0.0])):
     if norm == 0: return 0.0
     return (np.dot(v/norm, team_direction) + 1) / 2
 
-# --- OFFENSIVE OBJECTIVES ---
+def exclude_goalkeeper(df_home):
+    """Rimuove il portiere (giocatore con X minima)."""
+    if isinstance(df_home, pd.DataFrame):
+        gk_idx = df_home['x'].idxmin()
+        return df_home.drop(index=gk_idx)
+    min_x_idx = np.argmin(df_home[:, 0])
+    return np.delete(df_home, min_x_idx, axis=0)
 
+# --- OFFENSIVE OBJECTIVES ---
 def cost_coverage(df, detailed=False):
-    """(Offensive) Maximizes Pitch Coverage (1 - Area)"""
-    points = df[['x', 'y']].values
-    area = 0.0
-    if len(points) >= 3:
-        try:
-            area = ConvexHull(points).volume
-        except:
-            area = 0.0
+    """
+    Copertura campo basata su griglia semplice.
+    Divide il campo in celle e conta quante sono coperte dai giocatori.
     
-    cost = 1.0 - area
-    if detailed: return {"total": cost, "raw_area": area}
+    MOLTO PIÙ EFFICACE del ConvexHull perché:
+    - Valuta distribuzione interna
+    - Premia copertura zone strategiche
+    - Penalizza buchi nella formazione
+    """
+    df_outfield = exclude_goalkeeper(df)
+    points = df_outfield[['x', 'y']].values
+    
+    if len(points) < 3:
+        if detailed: return {"total": 100.0, "coverage": 0.0}
+        return 100.0
+    
+    # --- PARAMETRI ---
+    grid_size = 20                    # Griglia 20x20 (400 celle)
+    player_radius = 0.12              # Raggio influenza giocatore (12m su campo 100m)
+    
+    # Crea griglia
+    x_cells = np.linspace(0, 1, grid_size)
+    y_cells = np.linspace(0, 1, grid_size)
+    
+    covered_count = 0
+    weighted_coverage = 0.0
+    max_weight = 0.0
+    
+    # Per ogni cella, verifica se è coperta
+    for x in x_cells:
+        for y in y_cells:
+            cell_pos = np.array([x, y])
+            
+            # Peso cella (zone importanti valgono di più)
+            weight = 1.0
+            
+            # Terzo offensivo (x > 0.6): +50%
+            if x > 0.6:
+                weight = 1.5
+            
+            # Corridoio centrale (y tra 0.3-0.7): +50%
+            if 0.3 < y < 0.7:
+                weight *= 1.5
+            
+            max_weight += weight
+            
+            # Check copertura: almeno 1 giocatore vicino?
+            distances = np.linalg.norm(points - cell_pos, axis=1)
+            min_dist = np.min(distances)
+            
+            if min_dist <= player_radius:
+                covered_count += 1
+                weighted_coverage += weight
+    
+    # Metriche
+    total_cells = grid_size * grid_size
+    coverage_ratio = covered_count / total_cells
+    weighted_ratio = weighted_coverage / max_weight
+    
+    # Calcolo avanzamento medio (bonus per giocare alto)
+    avg_x = np.mean(points[:, 0])
+    advancement_bonus = avg_x * 0.3
+    
+    # COSTO FINALE (minimizza)
+    # Vogliamo: alta copertura + zone strategiche + avanzamento
+    cost = (
+        (1.0 - weighted_ratio) * 5.0 -    # Penalità bassa copertura
+        advancement_bonus                  # Bonus giocare alto
+    )
+    
+    if detailed:
+        return {
+            "total": cost,
+            "coverage_ratio": coverage_ratio,
+            "weighted_ratio": weighted_ratio,
+            "covered_cells": covered_count,
+            "total_cells": total_cells,
+            "avg_x": avg_x
+        }
+    
     return cost
 
-def cost_passing_lanes(df_home, obstacles_array, ball_pos, detailed=False):
-    """
-    Nuova logica: Premia la DISPONIBILITÀ di passaggi (quantità e qualità), 
-    NON penalizza il fatto che alcuni compagni lontani siano marcati.
-    """
+def cost_passing_lanes(df_home, obstacles_array, ball_pos, phase_type="Possesso offensivo", detailed=False):
+    # ... (parte iniziale invariata) ...
     home = df_home[['x', 'y']].values
+    player_names = df_home.index.tolist() # <--- RECUPERIAMO I NOMI
     n = len(home)
+    
     dists = np.linalg.norm(home - ball_pos, axis=1)
     ball_carrier_idx = np.argmin(dists) 
     p1 = home[ball_carrier_idx]
+    ball_carrier_name = player_names[ball_carrier_idx] # <--- NOME PORTATORE
 
-    # Parametri interni
-    MIN_OPTIONS_NEEDED = 3 # Vogliamo almeno 3 scarichi sicuri
-    
+    total_quality_score = 0.0
     valid_options_count = 0
-    quality_score_sum = 0.0
+    blocked_count = 0
     
-    pen_block_debug = 0 # Solo per report
-    
+    valid_receivers = [] # <--- LISTA PER I NOMI
+
+    # Parametri specifici per fase
+    is_offensive = "offensivo" in phase_type.lower()
+    target_score = config.PASS_TARGET_SCORE_OFF if is_offensive else config.PASS_TARGET_SCORE_DEF
+
     for j in range(n):
         if j == ball_carrier_idx: continue
         p2 = home[j]
+        receiver_name = player_names[j] # <--- NOME RICEVITORE
         
         # 1. Check Blocco
         block = False
@@ -63,52 +143,44 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos, detailed=False):
                 break
         
         if block:
-            pen_block_debug += 1
-            continue # Passaggio bloccato: lo ignoriamo, non lo penalizziamo!
+            blocked_count += 1
+            continue 
             
-        # 2. Se passa il blocco, valutiamo la qualità
+        # 2. Check Lunghezza/Vicinanza
         dist = np.linalg.norm(p1 - p2)
-        
-        # Ignoriamo passaggi troppo lunghi (non contano come opzioni valide)
-        if dist > config.PASS_MAX_LEN:
-            continue
-            
-        # Ignoriamo passaggi troppo corti (ammucchiata inutile)
-        if dist < 0.05: # 5 metri
-            continue
+        if dist > config.PASS_MAX_LEN: continue
+        if dist < 0.05: continue
 
-        # Calcolo Score Qualità (Angolo + Distanza ideale)
-        ang_score = angle_score(p1, p2) # 1.0 se avanti, 0.0 se indietro
-        
-        # Un passaggio è un'opzione valida
+        # Calcolo Score
+        pass_val = 1.0
+        if is_offensive:
+            ang = angle_score(p1, p2)
+            angle_multiplier = 1.0 + (ang * 0.5) 
+            pass_val *= angle_multiplier
+        else:
+            if dist > 0.20: pass_val *= 0.8
+
+        total_quality_score += pass_val
         valid_options_count += 1
-        quality_score_sum += ang_score
+        
+        # AGGIUNGIAMO ALLA LISTA (Nome + Score formattato)
+        valid_receivers.append(f"{receiver_name} ({pass_val:.1f})")
 
-    # --- CALCOLO COSTO ---
-    # L'obiettivo è minimizzare il costo.
-    # Se abbiamo poche opzioni, costo alto.
-    # Se abbiamo tante opzioni, costo basso (o addirittura negativo/bonus).
-    
-    missing_options = max(0, MIN_OPTIONS_NEEDED - valid_options_count)
-    
-    # Penalità enorme se non hai opzioni (es. 10.0 per ogni opzione mancante)
-    cost_quantity = missing_options * config.PASS_PENALTY_NO_OPTS
-    
-    # Bonus qualità: più alto è lo score, più abbassiamo la fitness (reward)
-    # Moltiplichiamo per un fattore piccolo per raffinare
-    reward_quality = quality_score_sum * 0.5
-    
-    total_cost = cost_quantity - reward_quality
+    # ... (Calcolo costo finale invariato) ...
+    cost = config.PASS_PENALTY_NO_OPTS * np.exp(-total_quality_score / target_score)
 
     if detailed:
         return {
-            "total": total_cost,
-            "valid_options": valid_options_count,
-            "missing_options": missing_options,
-            "blocked_count_debug": pen_block_debug
+            "total": cost,
+            "quality_score": total_quality_score,
+            "target_score": target_score,
+            "valid_count": valid_options_count,
+            "blocked_count": blocked_count,
+            "carrier": ball_carrier_name,      # <--- RESTITUIAMO CHI HA LA PALLA
+            "receivers": valid_receivers       # <--- RESTITUIAMO LA LISTA
         }
         
-    return total_cost
+    return cost
 
 def cost_offside_avoidance(df_home, obstacles_array, ball_pos, attacking_dir='right', detailed=False):
     """(Offensive) Penalizes players who are offside."""
@@ -179,43 +251,65 @@ def cost_marking(df_home, obstacles_array, detailed=False):
     return cost_scaled
 
 def cost_defensive_compactness(df_home, detailed=False):
-    """
-    (Defensive) Minimizza la dispersione dei giocatori dal baricentro.
-    """
-    coords = df_home[['x', 'y']].values
-    centroid = np.mean(coords, axis=0)
+    """(Defensive) Compattezza (Escluso Portiere)."""
+    df_outfield = exclude_goalkeeper(df_home)
+    coords = df_outfield[['x', 'y']].values
     
-    # Distanza media dal centroide
+    centroid = np.mean(coords, axis=0)
     dists = np.linalg.norm(coords - centroid, axis=1)
     dispersion = np.mean(dists)
     
+    final_cost = dispersion * 5.0
+    
     if detailed:
-        return {"total": dispersion, "dispersion": dispersion}
-    return dispersion
+        return {"total": final_cost, "dispersion": dispersion}
+    return final_cost
 
-def cost_defensive_line_height(df_home, ball_pos, detailed=False):
-    """
-    (Defensive) Premia la linea alta (lontano dalla porta 0), ma non oltre la palla.
-    Cost = (1.0 - last_defender_x). Più X è alto, più il costo scende.
-    Se X > ball_pos, penalità.
-    """
-    home_x = df_home['x'].values
-    last_defender_x = np.min(home_x)
+def cost_defensive_line_height(df_home, ball_pos, optimal_height=0.3, detailed=False):
+    """(Defensive) Altezza Linea (Escluso Portiere)."""
+    df_outfield = exclude_goalkeeper(df_home)
+    outfield_x = df_outfield['x'].values
     
-    # Vogliamo massimizzare X (quindi minimizzare 1-X)
-    cost = 1.0 - last_defender_x
+    if len(outfield_x) == 0: 
+        if detailed: return {"total": 0.0, "line_x": 0.0}
+        return 0.0
     
-    # Vincolo tattico: non salire ciecamente oltre la palla (se la palla è scoperta)
-    # Se last_defender > ball_x, rischio enorme.
-    penalty_over_ball = 0.0
-    if last_defender_x > ball_pos[0]:
-        penalty_over_ball = (last_defender_x - ball_pos[0]) * 5.0
+    last_man_x = np.min(outfield_x)
+    
+    too_deep_penalty = 0.0
+    if last_man_x < optimal_height: 
+        too_deep_penalty = (optimal_height - last_man_x) * 2.0
         
-    total = cost + penalty_over_ball
+    over_ball_penalty = 0.0
+    if last_man_x > ball_pos[0]:
+        over_ball_penalty = (last_man_x - ball_pos[0]) * 10.0
+        
+    total = too_deep_penalty + over_ball_penalty
     
     if detailed:
-        return {"total": total, "line_x": last_defender_x}
+        return {"total": total, "line_x": last_man_x, "opt": optimal_height}
     return total
+
+def cost_preventive_marking(df_home, obstacles_array, detailed=False):
+    """(Possesso Offensivo) Marcatura Preventiva."""
+    home = df_home[['x', 'y']].values
+    threats = [opp for opp in obstacles_array if opp[0] < 0.4]
+    
+    if not threats: 
+        if detailed: return {"total": 0.0, "threats": 0}
+        return 0.0
+    
+    cost = 0.0
+    for threat in threats:
+        dists = np.linalg.norm(home - threat, axis=1)
+        min_d = np.min(dists)
+        cost += min_d
+        
+    final_cost = cost * 5.0
+    
+    if detailed:
+        return {"total": final_cost, "threats": len(threats), "raw_dist": cost}
+    return final_cost
 
 # --- COMMON ---
 
@@ -228,7 +322,7 @@ def cost_ball_pressure(df_home, ball_pos, detailed=False):
     min_dist = np.min(dists)
     
     # Fattore di scala per renderlo significativo
-    cost = min_dist * 5.0 
+    cost = min_dist * 20.0 
     
     if detailed: return {"total": cost, "dist": min_dist}
     return cost
