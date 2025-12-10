@@ -1,0 +1,11 @@
+# Parametri ottimizzati per scenario: 352_vs_442
+# Fase: Possesso offensivo
+
+    "Possesso offensivo": 
+        "W_MARKING": 2.6146,
+        "W_COVERAGE": 14.7123,
+        "W_PASSING": 17.2512,
+        "W_OFFSIDE": 38.8458,
+        "W_BALL_PRESS": 3.8853,
+        "PASS_W_BLOCK": 8.2241,
+    ,
