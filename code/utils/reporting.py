@@ -52,20 +52,28 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         print(f"\033[1m{'Coverage (Massimizza Area)':<45} | {res['total']:<12.4f} | {weights['W_COVERAGE']:<8} | {cost:<12.4f}\033[0m")
         print(f"  └─ Coverage ratio: {res['coverage_ratio']:.4f}")
 
-    # Passing Lanes (AGGIORNATO PER NUOVE CHIAVI)
+    # Passing Lanes
     if weights.get("W_PASSING", 0) > 0:
-        res = cost_passing_lanes(df, obstacles, ball_pos, detailed=True)
+        res = cost_passing_lanes(df, obstacles, ball_pos, phase_type=phase_name, detailed=True)
         cost = res["total"] * weights["W_PASSING"]
         total_fitness += cost
-        print(f"\033[1m{'Passing Lanes (Bonus Quality)':<45} | {res['total']:<12.4f} | {weights['W_PASSING']:<8} | {cost:<12.4f}\033[0m")
-        # Controllo se stiamo usando la nuova versione (dizionario con 'valid_options')
-        if 'valid_options' in res:
-            print(f"  ├─ Opzioni Valide:    {res['valid_options']} (Target: >=3)")
-            print(f"  ├─ Opzioni Mancanti:  {res['missing_options']}")
-            print(f"  └─ Blocchi ignorati:  {res['blocked_count_debug']}")
-        else:
-            # Fallback vecchia versione
-            print(f"  └─ Valore: {res['total']}")
+        
+        print(f"\033[1m{'Passing Lanes (Saturazione)':<45} | {res['total']:<12.4f} | {weights['W_PASSING']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  ├─ Quality Score:     {res['quality_score']:.2f} / {res['target_score']} (Target)")
+        
+        # NUOVA SEZIONE DI STAMPA
+        if 'carrier' in res:
+            print(f"  ├─ Portatore Palla:   {res['carrier']}")
+            
+            if res['valid_count'] > 0:
+                # Uniamo i nomi con una virgola
+                receivers_str = ", ".join(res['receivers'])
+                # Se la stringa è troppo lunga, andiamo a capo
+                print(f"  ├─ Ricevitori Validi: {receivers_str}")
+            else:
+                print(f"  ├─ Ricevitori Validi: NESSUNO (Isolato!)")
+        
+        print(f"  └─ Passaggi Bloccati: {res['blocked_count']}")
 
     # Offside Avoidance
     if weights.get("W_OFFSIDE", 0) > 0:
