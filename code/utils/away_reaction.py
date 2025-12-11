@@ -6,13 +6,13 @@ def react_away_to_home(
     base_away_df,
     ball_pos,
     keeper_factor=0.03,
-    block_lateral=0.40,     # molto più forte → squadra slitta verso lato palla
-    block_vertical=0.30,    # sale/scende molto di più → più realistica
+    block_lateral=0.30,     # molto più forte → squadra slitta verso lato palla
+    block_vertical=0.20,    # sale/scende molto di più → più realistica
     shape_compactness=0.35, # compattezza reparti
-    marking_factor=0.18,    # marcatura più evidente
+    marking_factor=0.12,    # marcatura più evidente
     max_marking_distance=0.25,
     pressing_players=3,     # aumenta giocatori che reagiscono
-    pressing_factor=0.18    # pressing più "vero"
+    pressing_factor=0.12    # pressing più "vero"
 ):
     away = base_away_df.copy().reset_index(drop=True)
 
