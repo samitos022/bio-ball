@@ -137,7 +137,7 @@ Typical customizations include:
 
 ---
 
-### ▶️ Selecting a Scenario from CLI
+### Selecting a Scenario from CLI
 
 The scenario can be selected at runtime using the `--scenario` argument:
 
