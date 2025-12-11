@@ -1,140 +1,168 @@
-# 📘 BIO-BALL (CMA-ES Football Position Optimizer)  
-This project was developed as part of a **university assignment** with the goal of applying **evolutionary algorithms** to football analytics.  
-The objective is to use **CMA-ES (Covariance Matrix Adaptation Evolution Strategy)** to compute **optimal team formations** across the three main phases of play:
+# 📘 BIO-BALL (Evolutionary Football Formation Optimization)
 
-- **Offensive possession**  
-- **Defensive possession**  
-- **Pure defensive phase**
+BIO-BALL is a **university research project** focused on applying **evolutionary optimization algorithms** to football tactical analysis.
+The objective is to automatically compute **optimal team formations** across different **phases of play**, starting from real tracking data.
 
-Instead of relying on static positional averages, the project explores how evolutionary optimization can restructure a team’s spatial organization by taking into account tactical constraints, passing quality, ball access, and coverage.  
-The result is a tool that allows experimentation on how player arrangements can be improved algorithmically starting from real tracking data.
+Instead of relying on static positional averages, the project explores how evolutionary optimization can **reshape a team’s spatial organization** by incorporating tactical constraints, passing quality, ball access, offside logic, and defensive coverage.
 
-The project includes:
-
-- Analysis of **Metrica Sports tracking data**  
-- Modeling of **tactical constraints** and **spatial penalties**  
-- A customizable **multi-term objective function**  
-- **CMA-ES** optimization (static and dynamic variants)  
-- Visualization of **optimized formations** and **convergence**  
+The project is built around **CMA-ES (Covariance Matrix Adaptation Evolution Strategy)**, with additional support for **Differential Evolution**, and allows experimentation with both **static** and **reactive (dynamic)** opponent behavior.
 
 ---
 
-## ⚡ How It Works
+## ⚽ Phases of Play
 
-The optimization pipeline is structured into three main components:
+The optimizer can be applied to different game contexts:
 
-### 1️⃣ Tracking Data Analysis
+* **Offensive possession** – structured attacking shape and passing options
+* **Defensive possession** – compactness, coverage, and marking
+* **Non-possession / pure defensive phase** – block positioning and space denial
 
-The project processes tracking and event data from the Metrica Sports sample dataset (`load_data.py`).  
+Each phase produces a distinct reference formation and optimization objective.
+
+---
+
+## 🧩 Project Components
+
+### 📊 Tracking Data Analysis
+
+Tracking and event data from the **Metrica Sports open dataset** are processed using `load_data.py` and `analysis.py`.
 For each frame, the system:
 
-- Identifies **ball possession**  
-- Assigns the frame to a **game phase** (offensive, defensive, or non-possession)  
-- Computes **average player positions** for each phase (`analysis.py`, `analysis_dynamic.py`)
+* Detects **ball possession**
+* Assigns the frame to a **game phase**
+* Computes **average player positions** per phase
 
-These averages serve as initial “reference formations” for the optimizer.
-
----
-
-### 2️⃣ Objective Function
-
-The core of the project is the **fitness function**, modeled as a **weighted sum of multiple tactical components**.  
-
-Each term reflects an element of football decision-making or positional structure.
-
-All weights are defined in `config.py` and can be modified to emphasize different tactical principles.
-
-The individual cost components are:
-
-#### ✔ Structural Constraints (`constraints.py`)  
-- Field boundary checks  
-- Minimum inter-player distance  
-- Preservation of relative ordering (e.g., defenders behind midfielders)  
-- Smoothness of the transition from reference to optimized formation  
-
-#### ✔ Field Coverage  
-Measured through the Convex Hull: encourages spatially balanced yet expansive structures.
-
-#### ✔ Passing Lanes  
-Penalizes:
-- Very long passes  
-- Unfavorable passing angles  
-- Opponent interference on pass lines  
-
-#### ✔ Ball Support  
-Encourages at least one teammate to remain close to the ball.
-
-#### ✔ Offside Logic  
-Based on ball position and the second-last opponent.
-
-All components are combined through the **weighted-sum fitness model**, making the optimization interpretable and tunable.
+These averages act as **reference formations** that initialize the evolutionary search.
 
 ---
 
-### 3️⃣ Optimization via CMA-ES
+### 🎯 Objective Function
 
-CMA-ES is used to search for the optimal configuration of all 11 players on the field.
+The optimization problem is defined through a **multi-term weighted cost function**, designed to remain interpretable and tunable.
 
-Two versions are implemented:
+All weights are configurable and can be optimized or manually adjusted.
 
-#### 🔵 Static CMA-ES (`main.py`)
-- Opponent players keep their **average historical positions**.  
-- CMA-ES optimizes the home formation only.  
+#### Main Cost Components
 
-#### 🔴 Dynamic CMA-ES (`main_dynamic.py`)
-- The opponent formation becomes **reactive**, using the logic in `away_reaction.py`:  
-  - Lateral and vertical shifting  
-  - Role-based adjustments (DEF/MID/FW)  
-  - Individual marking  
-  - Direct pressing toward the ball  
+* **Structural Constraints**
 
-This creates more realistic optimization scenarios that resemble real match interactions.
+  * Field boundary enforcement
+  * Minimum inter-player distance
+  * Role ordering (DEF < MID < FW)
+  * Smooth deviation from reference formation
+
+* **Field Coverage**
+
+  * Encouraged via **Convex Hull area** control
+
+* **Passing Lanes**
+
+  * Penalization of long or poorly angled passes
+  * Opponent interference on passing lines
+
+* **Ball Support**
+
+  * Ensures proximity of at least one teammate to the ball
+
+* **Offside Logic**
+
+  * Based on ball position and second-last opponent
+
+The final fitness is computed as a **weighted sum**, making tactical trade-offs explicit.
 
 ---
 
-## 📊 Output Overview
+## 🧠 Optimization Algorithms
 
-The project produces the following outputs:
+### 🔵 Static CMA-ES
 
-- **PNG visualizations** of the optimized formations  
-- **Vertical pitch diagrams** for clearer tactical interpretation  
-- **CMA-ES convergence plots** showing the evolution of the cost function  
-- **GIF animations** that illustrate the optimization process generation by generation  
+* Implemented in `optimization/cma_es.py`
+* Opponent players remain fixed at historical average positions
+* Optimizes only the home team formation
 
-These outputs help evaluate both the final optimized formation and the evolutionary trajectory that led to it.
+### 🔴 Dynamic CMA-ES
+
+* Opponent becomes **reactive** through `away_reaction.py`
+* Includes:
+
+  * Lateral and vertical shifting
+  * Role-based movements (DEF / MID / FW)
+  * Individual marking
+  * Ball-oriented pressing
+
+This setup produces more realistic tactical interactions.
+
+### 🟢 Differential Evolution (Benchmark)
+
+* Implemented in `optimization/differential_evolution.py`
+* Used **exclusively as a final evaluation benchmark**
+* Provides a comparative baseline against CMA-ES solutions
+* Not intended for tactical tuning, but for assessing convergence quality and final fitness
 
 ---
 
 ## ▶️ Running the Project
 
-This section explains how to configure, run, and experiment with the system.
+### 1️⃣ Requirements
 
-### 1. Install Requirements
-
-Requires **Python ≥ 3.9**.
+* **Python ≥ 3.9**
 
 Install dependencies:
 
 ```bash
-pip install numpy pandas matplotlib mplsoccer scipy cma imageio
+pip install -r requirements.txt
 ```
 
-### 2. Run Static/Dynamic Optimization
+---
 
-Depending on the type of result you want to obtain, run 
+### 2️⃣ Command-Line Interface
+
+The project supports configuration via CLI arguments.
+
+#### Available Arguments
+
+| Argument  | Description            | Values                                     |
+| --------- | ---------------------- | ------------------------------------------ |
+| `--mode`  | Optimization algorithm | `cma_static`, `cma_dynamic`, `de`          |
+| `--phase` | Phase of play          | `Offensive possession`, `Defensive possession`, `Defensive phase` |
+
+---
+
+### 3️⃣ Example Commands
+
+#### Static CMA-ES
 
 ```bash
-python main.py
+python main.py --mode cma_static --phase op
 ```
 
-for the **static version** or
+#### Dynamic CMA-ES
 
 ```bash
-python main_dynamic.py
+python main.py --mode cma_dynamic --phase dp
 ```
 
-for the **dynamic version**.
+#### Differential Evolution
 
-## 🚀 Author
+```bash
+python main.py --mode de --phase d
+```
 
-Developed by Sam Nejati, Daniele Notarangelo and Jasnoor Singh.
+---
+
+## 📈 Outputs
+
+Each run generates:
+
+* Optimized formation plots (**PNG**)
+* Vertical pitch visualizations
+* Optimization **convergence curves**
+* **GIF animations** of evolutionary progress
+
+All results are stored in timestamped experiment folders.
+
+---
+
+## 🚀 Authors
+
+Developed by **Sam Nejati**, **Daniele Notarangelo**, and **Jasnoor Singh**.
