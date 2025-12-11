@@ -101,6 +101,54 @@ This setup produces more realistic tactical interactions.
 
 ---
 
+## 🎮 Scenario Management
+
+The project supports **multiple tactical scenarios**, allowing the optimizer to be tested under different spatial and contextual conditions.
+A *scenario* defines the **initial conditions** of the optimization problem, including pitch configuration, ball position, obstacles, and team orientation.
+
+Scenarios are managed through the `utils/setup.py` module and can be selected or customized from the command line.
+
+### 🧩 What Is a Scenario?
+
+A scenario encapsulates:
+
+* Pitch dimensions and orientation
+* Initial **ball position**
+* Home and away team reference formations
+* Optional **obstacles or spatial constraints**
+* Phase-specific assumptions (offensive, defensive, non-possession)
+
+This abstraction makes experiments **repeatable, comparable, and extensible**.
+
+---
+
+### ⚙️ Scenario Configuration
+
+Scenarios are defined programmatically inside `setup_scenario()` and can be:
+
+* **Default**: derived directly from tracking data averages
+* **Custom**: manually configured for controlled experiments
+
+Typical customizations include:
+
+* Forcing the ball into specific zones (e.g., wide areas, central buildup)
+* Reducing the effective pitch size to simulate compact phases
+* Introducing obstacles or forbidden regions
+
+---
+
+### ▶️ Selecting a Scenario from CLI
+
+The scenario can be selected at runtime using the `--scenario` argument:
+
+```bash
+python main.py --mode cma_dynamic --scenario compact_block --phase op
+```
+
+If no scenario is specified, the **default scenario** for the chosen phase is used.
+
+---
+
 ## ▶️ Running the Project
 
 ### 1️⃣ Requirements
@@ -121,10 +169,11 @@ The project supports configuration via CLI arguments.
 
 #### Available Arguments
 
-| Argument  | Description            | Values                                     |
-| --------- | ---------------------- | ------------------------------------------ |
-| `--mode`  | Optimization algorithm | `cma_static`, `cma_dynamic`, `de`          |
-| `--phase` | Phase of play          | `op (Offensive possession)`, `dp (Defensive possession)`, `d (Defensive phase)` |
+| Argument     | Description                     | Values                                     |
+| ------------ | ------------------------------- | ------------------------------------------ |
+| `--mode`     | Optimization algorithm          | `cma_static`, `cma_dynamic`, `de`          |
+| `--scenario` | Tactical scenario configuration | optional                                   |
+| `--phase`    | Phase of play                   | `op (Offensive possession)`, `dp (Defensive possession)`, `d (Defensive phase)` |
 
 ---
 
