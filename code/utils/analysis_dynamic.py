@@ -319,9 +319,6 @@ def plot_formation_vertical(positions, title, team='Home', color='red', ball_pos
     plt.show()
 
 def plot_convergence(history, save_path=None):
-    """
-    Plotta l'andamento del costo (Fitness) durante le generazioni.
-    """
     plt.figure(figsize=(10, 6))
     
     # Stile scuro
@@ -333,9 +330,9 @@ def plot_convergence(history, save_path=None):
     plt.plot(history, color='#00ff85', linewidth=2.5, label='Best Cost per Generation')
     
     # Etichette
-    plt.title('Ottimizzazione CMA-ES: Convergenza', color='white', fontsize=16, pad=15)
-    plt.xlabel('Generazioni', color='white', fontsize=12)
-    plt.ylabel('Funzione di Costo (Minimizzazione)', color='white', fontsize=12)
+    plt.title('Optimization: Convergence', color='white', fontsize=16, pad=15)
+    plt.xlabel('Generations', color='white', fontsize=12)
+    plt.ylabel('Cost Function (Minimization)', color='white', fontsize=12)
     
     # Griglia e assi
     plt.grid(color='white', alpha=0.1, linestyle='--')

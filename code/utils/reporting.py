@@ -8,11 +8,7 @@ from optimization.cost_functions import (
     cost_ball_pressure, cost_preventive_marking
 )
 
-def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, initial_df_ref, phase_name):
-    """
-    Stampa un report dettagliato degli obiettivi attivi per la fase corrente.
-    """
-    
+def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, initial_df_ref, phase_name): 
     if isinstance(formation_data, pd.DataFrame):
         df = formation_data
     else:
@@ -21,9 +17,9 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
     weights = config.PHASE_WEIGHTS.get(phase_name, config.PHASE_WEIGHTS["Fase difensiva"])
     
     print("\n" + "="*100)
-    print(f"FITNESS REPORT DETTAGLIATO: {phase_name.upper()}")
+    print(f"FITNESS REPORT: {phase_name.upper()}")
     print("="*100)
-    print(f"{'OBIETTIVO / DETTAGLIO':<45} | {'VAL GREZZO':<12} | {'PESO':<8} | {'COSTO':<12}")
+    print(f"{'OBIETTIVO':<45} | {'VAL GREZZO':<12} | {'PESO':<8} | {'COSTO':<12}")
     print("-" * 100)
 
     total_fitness = 0.0
