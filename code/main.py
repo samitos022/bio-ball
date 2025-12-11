@@ -31,7 +31,7 @@ def main():
     args = parser.parse_args()
 
     # Definiamo la fase su cui lavorare
-    phase_home = "Possesso offensivo" 
+    phase_home = "Possesso difensivo" 
     phase_away = "Fase difensiva"
 
     # 2. Setup Dati
