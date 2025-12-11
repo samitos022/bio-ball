@@ -25,86 +25,65 @@ def exclude_goalkeeper(df_home):
     min_x_idx = np.argmin(df_home[:, 0])
     return np.delete(df_home, min_x_idx, axis=0)
 
-# --- OFFENSIVE OBJECTIVES ---
 def cost_coverage(df, detailed=False):
     """
-    Copertura campo basata su griglia semplice.
-    Divide il campo in celle e conta quante sono coperte dai giocatori.
-    
-    MOLTO PIÙ EFFICACE del ConvexHull perché:
-    - Valuta distribuzione interna
-    - Premia copertura zone strategiche
-    - Penalizza buchi nella formazione
+    Copertura campo con pesi tattici graduali.
+    Zone centrali-avanzate = massimo valore
+    Fasce laterali = valore medio
+    Zone difensive centrali/angoli = minimo valore
     """
     df_outfield = exclude_goalkeeper(df)
     points = df_outfield[['x', 'y']].values
     
     if len(points) < 3:
-        if detailed: return {"total": 100.0, "coverage": 0.0}
-        return 100.0
+        return {"total": 100.0, "coverage": 0.0} if detailed else 100.0
     
-    # --- PARAMETRI ---
-    grid_size = 20                    # Griglia 20x20 (400 celle)
-    player_radius = 0.12              # Raggio influenza giocatore (12m su campo 100m)
+    # Parametri
+    grid_size = 20
+    player_radius = 0.12
     
     # Crea griglia
-    x_cells = np.linspace(0, 1, grid_size)
-    y_cells = np.linspace(0, 1, grid_size)
+    x_grid, y_grid = np.meshgrid(
+        np.linspace(0, 1, grid_size),
+        np.linspace(0, 1, grid_size)
+    )
+    cells = np.stack([x_grid.ravel(), y_grid.ravel()], axis=1)
     
-    covered_count = 0
-    weighted_coverage = 0.0
-    max_weight = 0.0
+    # CALCOLO PESI TATTICI (vettorizzato)
+    x, y = cells[:, 0], cells[:, 1]
     
-    # Per ogni cella, verifica se è coperta
-    for x in x_cells:
-        for y in y_cells:
-            cell_pos = np.array([x, y])
-            
-            # Peso cella (zone importanti valgono di più)
-            weight = 1.0
-            
-            # Terzo offensivo (x > 0.6): +50%
-            if x > 0.6:
-                weight = 1.5
-            
-            # Corridoio centrale (y tra 0.3-0.7): +50%
-            if 0.3 < y < 0.7:
-                weight *= 1.5
-            
-            max_weight += weight
-            
-            # Check copertura: almeno 1 giocatore vicino?
-            distances = np.linalg.norm(points - cell_pos, axis=1)
-            min_dist = np.min(distances)
-            
-            if min_dist <= player_radius:
-                covered_count += 1
-                weighted_coverage += weight
+    # 1. Avanzamento: lineare crescente (0.5 → 1.5)
+    advancement = 0.5 + x
+    
+    # 2. Centralità: gaussiana (max al centro y=0.5, min ai lati)
+    centrality = np.exp(-5 * (y - 0.5)**2)  # Picco 1.0 al centro, ~0.3 ai bordi
+    
+    # 3. Penalità angoli difensivi (x<0.3 e y estreme)
+    corner_penalty = np.where((x < 0.3) & ((y < 0.2) | (y > 0.8)), 0.3, 1.0)
+    
+    # Peso finale combinato
+    weights = advancement * centrality * corner_penalty
+    
+    # Check copertura
+    covered = np.zeros(len(cells), dtype=bool)
+    for point in points:
+        distances = np.linalg.norm(cells - point, axis=1)
+        covered |= (distances <= player_radius)
     
     # Metriche
-    total_cells = grid_size * grid_size
-    coverage_ratio = covered_count / total_cells
-    weighted_ratio = weighted_coverage / max_weight
+    weighted_coverage = np.sum(weights[covered])
+    max_coverage = np.sum(weights)
+    coverage_ratio = weighted_coverage / max_coverage
     
-    # Calcolo avanzamento medio (bonus per giocare alto)
-    avg_x = np.mean(points[:, 0])
-    advancement_bonus = avg_x * 0.3
-    
-    # COSTO FINALE (minimizza)
-    # Vogliamo: alta copertura + zone strategiche + avanzamento
-    cost = (
-        (1.0 - weighted_ratio) * 5.0 -    # Penalità bassa copertura
-        advancement_bonus                  # Bonus giocare alto
-    )
+    # Costo: penalizza bassa copertura
+    cost = (1.0 - coverage_ratio) * 3
     
     if detailed:
         return {
             "total": cost,
-            "coverage_ratio": coverage_ratio,
-            "weighted_ratio": weighted_ratio,
-            "covered_cells": covered_count,
-            "total_cells": total_cells,
-            "avg_x": avg_x
+            "coverage_ratio": np.sum(covered) / len(cells),
+            "weighted_ratio": coverage_ratio,
+            "avg_x": np.mean(points[:, 0])
         }
     
     return cost
@@ -243,7 +222,7 @@ def cost_defensive_line_height(df_home, ball_pos, detailed=False):
 def cost_preventive_marking(df_home, obstacles_array, detailed=False):
     """(Possesso Offensivo) Marcatura Preventiva."""
     home = df_home[['x', 'y']].values
-    threats = [opp for opp in obstacles_array if opp[0] < 0.4]
+    threats = [opp for opp in obstacles_array if opp[0] < 0.5]
     
     if not threats: 
         if detailed: return {"total": 0.0, "threats": 0}

@@ -230,6 +230,41 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     
     plt.show()
 
+def plot_formation_with_ball_and_obstacles_2(df, title, team, color, ball_position, obstacles, save_path=None, show=True):
+    """
+    Versione aggiornata per supportare salvataggio silenzioso (per GUI).
+    """
+    pitch = Pitch(pitch_type='metricasports', pitch_length=105, pitch_width=68, pitch_color='#22312b', line_color='#c7d5cc')
+    fig, ax = pitch.draw(figsize=(10, 7))
+    
+    # Home Team
+    pitch.scatter(df.x, df.y, ax=ax, c=color, s=200, edgecolors='white', zorder=3, label=team)
+    
+    # Ostacoli
+    if obstacles is not None and len(obstacles) > 0:
+        pitch.scatter(obstacles[:, 0], obstacles[:, 1], ax=ax, c='gray', s=150, alpha=0.6, zorder=2, label='Opponents')
+
+    # Palla
+    pitch.scatter(ball_position[0], ball_position[1], ax=ax, c='yellow', s=180, edgecolors='black', zorder=4, label='Ball')
+
+    # Annotazioni giocatori (opzionale)
+    for i, row in df.iterrows():
+        pitch.annotate(i, (row.x, row.y), ax=ax, fontsize=8, ha='center', va='center', color='white', zorder=5)
+
+    ax.set_title(title, fontsize=18, color='white', pad=15)
+    
+    # Legenda
+    ax.legend(facecolor='#22312b', edgecolor='white', labelcolor='white', loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
+
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=100)
+    
+    if show:
+        plt.show()
+    
+    plt.close(fig) # Chiude la figura per liberare memoria
+
+
 def plot_formation_vertical(positions, title, team='Home', color='red', ball_position=None, obstacles=None, save_path=None):
     """
     Visualizza la formazione sul campo VERTICALE senza nomi/numeri.

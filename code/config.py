@@ -57,8 +57,8 @@ PHASE_WEIGHTS = {
     "Possesso offensivo": {
         "W_MARKING": 2.6146,
         "W_COVERAGE": 34.7123,
-        "W_PASSING": 10.2512,
-        "W_OFFSIDE": 38.8458,
+        #"W_PASSING": 10.2512,
+        #"W_OFFSIDE": 38.8458,
         "W_BALL_PRESS": 30.0,
         
 
@@ -68,9 +68,9 @@ PHASE_WEIGHTS = {
         "W_LINE_HEIGHT":  0.0,
         
         # Obiettivi Offensivi
-        "W_COVERAGE":     20.0,    # Allargare il campo
+        #"W_COVERAGE":     20.0,    # Allargare il campo
         "W_PASSING":      6.0,    # Trovare linee
-        "W_OFFSIDE":      50.0,    # Evitare fuorigioco (Regola)
+        "W_OFFSIDE":      100.0,    # Evitare fuorigioco (Regola)
         "W_PREV_MARKING": 15.0
     },
     
