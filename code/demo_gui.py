@@ -115,8 +115,6 @@ class BioBallGUI:
         
         self.running = True
         self.btn.config(state=tk.DISABLED)
-        self.progress.start(10)
-        self.status.config(text="Running...", fg="orange")
         self.report.config(state=tk.NORMAL)
         self.report.delete("1.0", tk.END)
         self.report.insert(tk.END, "Ottimizzazione avviata...\n")
@@ -180,8 +178,6 @@ class BioBallGUI:
         """Mostra risultati"""
         self.running = False
         self.btn.config(state=tk.NORMAL)
-        self.progress.stop()
-        self.status.config(text="Completato", fg="green")
         
         # Immagine
         try:
@@ -203,8 +199,6 @@ class BioBallGUI:
         """Mostra errore"""
         self.running = False
         self.btn.config(state=tk.NORMAL)
-        self.progress.stop()
-        self.status.config(text="Errore", fg="red")
         messagebox.showerror("Errore", msg)
 
 
