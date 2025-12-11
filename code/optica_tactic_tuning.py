@@ -66,11 +66,13 @@ def objective(trial):
     
     if phase == "Fase difensiva":
         # Tuniamo i pesi difensivi
-        phase_weights["W_MARKING"]     = trial.suggest_float("W_MARKING", 10.0, 100.0)
-        phase_weights["W_COMPACTNESS"] = trial.suggest_float("W_COMPACTNESS", 1.0, 30.0)
-        phase_weights["W_LINE_HEIGHT"] = trial.suggest_float("W_LINE_HEIGHT", 0.0, 20.0)
-        phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 10.0, 50.0)
-        # Disattiviamo gli altri per sicurezza (o li lasciamo a 0 come da config)
+        phase_weights["W_COVERAGE"]    = trial.suggest_float("W_COVERAGE", 0.1, 3.0)
+        phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 0.1, 100.0)
+        phase_weights["W_MARKING"]    = trial.suggest_float("W_MARKING", 0.1, 100.0)
+        phase_weights["W_COMPACTNESS"]     = trial.suggest_float("W_COMPACTNESS", 0.1, 100.0) # Priorità alta
+        phase_weights["W_LINE_HEIGHT"]  = trial.suggest_float("W_LINE_HEIGHT", 0.1, 100.0)
+        phase_weights["W_PREV_MARKING"]  = trial.suggest_float("W_PREV_MARKING", 0.1, 3.0)
+        
         
     elif phase == "Possesso offensivo":
         # Tuniamo i pesi offensivi
@@ -81,9 +83,13 @@ def objective(trial):
         phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 0.0, 10.0) # Ball support basso
 
     elif phase == "Possesso difensivo":
-        phase_weights["W_COVERAGE"]    = trial.suggest_float("W_COVERAGE", 1.0, 10.0)
-        phase_weights["W_PASSING"]     = trial.suggest_float("W_PASSING", 10.0, 50.0) # Priorità alta
-        phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 10.0, 40.0)
+        phase_weights["W_COVERAGE"]    = trial.suggest_float("W_COVERAGE", 0.1, 100.0)
+        phase_weights["W_PASSING"]     = trial.suggest_float("W_PASSING", 0.1, 100.0) # Priorità alta
+        phase_weights["W_BALL_PRESS"]  = trial.suggest_float("W_BALL_PRESS", 0.1, 100.0)
+        phase_weights["W_MARKING"]    = trial.suggest_float("W_MARKING", 0.1, 100.0)
+        phase_weights["W_COMPACTNESS"]     = trial.suggest_float("W_COMPACTNESS", 0.1, 100.0) # Priorità alta
+        phase_weights["W_LINE_HEIGHT"]  = trial.suggest_float("W_LINE_HEIGHT", 0.1, 100.0)
+        phase_weights["W_PREV_MARKING"]  = trial.suggest_float("W_PREV_MARKING", 0.1, 100.0)
 
     # Tuning parametri fisici (comuni, opzionale)
     config.PASS_W_BLOCK = trial.suggest_float("PASS_W_BLOCK", 1.0, 15.0)
@@ -116,7 +122,7 @@ def objective(trial):
 if __name__ == "__main__":
     study = optuna.create_study(direction="minimize")
     print("Avvio ricerca pesi (20 trials)...")
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=100)
     
     print(f"\n=== MIGLIORI PESI PER {phase.upper()} ===")
     print(f"Best MSE: {study.best_value:.6f}")

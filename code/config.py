@@ -27,7 +27,7 @@ PASS_MAX_LEN = 0.45
 PASS_BLOCK_THRESHOLD = 0.03
 PASS_W_LONG = 1.5
 PASS_W_ANGLE = 0.5
-PASS_W_BLOCK = 10.0
+PASS_W_BLOCK = 1.0
 PASS_PENALTY_NO_OPTS = 10.0
 
 # NUOVI PARAMETRI SATURAZIONE
@@ -76,20 +76,19 @@ PHASE_WEIGHTS = {
     
     "Possesso difensivo": {
         # Fase di Costruzione
-        "W_MARKING":      0.0,
-        "W_COMPACTNESS":  8.0,    # Un po' compatti per sicurezza
-        "W_LINE_HEIGHT":  50.0,
-        "W_BALL_PRESS":   70.0,   # Ball Support (Alto, servono appoggi)
-        
-        "W_COVERAGE":     25.0,    # Copertura media
-        "W_PASSING":      7.0,   # Passaggi sicuri priorità assoluta
-        "W_OFFSIDE":      1000.0,     # Difficile essere in offside in difesa
-        "W_PREV_MARKING": 8.0 
+        "W_OFFSIDE":      100.0,
+        "W_COVERAGE": 23.6387,
+        "W_PASSING": 35.3722,
+        "W_BALL_PRESS": 10.0101,
+        "W_MARKING": 61.0412,
+        "W_COMPACTNESS": 87.8870,
+        "W_LINE_HEIGHT": 29.8935,
+        "W_PREV_MARKING": 14.2057
     }
 }
 
 # PARAMETRI SOLVER
-CMA_MAXITER = 100
+CMA_MAXITER = 200
 CMA_POPSIZE = 20
 CMA_SIGMA_INIT = 0.15
 CMA_TOLFUN = 1e-4

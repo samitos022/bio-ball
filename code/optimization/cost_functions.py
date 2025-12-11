@@ -173,47 +173,64 @@ def cost_defensive_compactness(df_home, detailed=False):
 
 def cost_defensive_line_height(df_home, ball_pos, detailed=False):
     """
-    (Defensive) Altezza Linea Dinamica.
-    La difesa deve salire accompagnando la palla, ma senza farsi scavalcare.
-    """
-    # 1. Trova l'ultimo uomo
-    df_outfield = exclude_goalkeeper(df_home)
-    outfield_x = df_outfield['x'].values
-    if len(outfield_x) == 0: return 0.0
+    (Defensive) Altezza Linea Dinamica ed Elastica.
     
-    last_man_x = np.min(outfield_x)
+    Novità:
+    1. Calcola la linea basandosi sulla MEDIA degli ultimi 3 difensori (non solo 1).
+    2. La distanza ideale dalla palla varia: 
+       - Palla vicina alla porta = Difensori vicini alla palla (densità).
+       - Palla lontana = Difensori più staccati (copertura profondità).
+    """
+    # 1. Seleziona i difensori (escludendo il portiere)
+    # Assumiamo che df_outfield contenga già solo i giocatori di movimento
+    # Se non hai la funzione esterna, filtro qui veloce per sicurezza (escludo chi è troppo vicino a 0.0 se c'è un GK)
+    outfield_x = exclude_goalkeeper(df_home)['x'].values
+    # (Se hai una funzione exclude_goalkeeper usala qui: outfield_x = exclude_goalkeeper(df_home)['x'].values)
+    
+    if len(outfield_x) < 3: 
+        # Fallback se ci sono meno di 3 giocatori (es. espulsioni o test)
+        line_x = np.min(outfield_x) if len(outfield_x) > 0 else 0.0
+    else:
+        # Ordina le posizioni X (dal più vicino alla porta 0.0 al più lontano)
+        sorted_x = np.sort(outfield_x)
+        # Prende i primi 3 (i 3 più arretrati) e fa la media
+        line_x = np.mean(sorted_x[:3])
+
     ball_x = ball_pos[0]
 
-    # 2. Definisci il Target Dinamico
-    # Vogliamo stare dietro la palla di un cuscinetto di sicurezza (es. 5-10 metri)
-    # Ma non possiamo salire oltre il centrocampo (0.5) per non rischiare troppo i lanci lunghi
-    safety_buffer = 0.20  # 20 metri dietro la palla
-    target_x = min(ball_x - safety_buffer, 0.55) 
+    # 2. Calcolo Distanza Ideale Dinamica (Elasticità)
+    # Base fissa (minimo sindacale): 0.05 (5 metri)
+    # Scaling factor: più la palla è alta, più spazio lasciamo dietro la palla.
+    # Formula: 5m + (25% della posizione palla)
+    dynamic_buffer = 0.05 + (ball_x * 0.25)
     
-    # Non possiamo nemmeno difendere dietro la linea di porta (0.0)
-    target_x = max(target_x, 0.05) 
+    # Calcolo dove dovrebbe essere la linea (Palla - Buffer)
+    target_x = ball_x - dynamic_buffer
+    
+    # Vincoli di campo (non possiamo difendere dentro la porta o oltre il centrocampo difensivo puro)
+    target_x = max(target_x, 0.05) # Mai schiacciarsi sulla linea di porta
+    target_x = min(target_x, 0.60) # Mai salire scriteriatamente oltre centrocampo
 
     # 3. Calcolo Costo
     cost = 0.0
     
-    # A. Siamo troppo bassi rispetto al target? (Squadra lunga)
-    # Esempio: Palla a centrocampo, noi siamo in area.
-    if last_man_x < target_x:
-        cost += (target_x - last_man_x) * 5.0  # Spingiamo su la linea
+    # A. Penalità "Too Deep" (Siamo troppo bassi rispetto al target?)
+    # Se dobbiamo stare a 30m e siamo a 15m, spingiamo su.
+    if line_x < target_x:
+        # Moltiplicatore progressivo: piccolo errore pesa poco, grande errore pesa tanto
+        cost += (target_x - line_x) * 8.0 
         
-    # B. Siamo troppo alti? (Rischio imbucata / Siamo stati superati)
-    # Se siamo oltre la palla, disastro.
-    if last_man_x > ball_x:
-        cost += (last_man_x - ball_x) * 50.0  # Penalità enorme (scappare indietro!)
-    
-    # C. Siamo tra la palla e il target? (Zona grigia accettabile)
-    # Se last_man_x è tra (ball_x - buffer) e ball_x, va bene, stiamo accorciando.
+    # B. Penalità "Over Ball" (La linea media ha superato la palla?)
+    # Attenzione: se la media dei 3 difensori è OLTRE la palla, è gravissimo (buco centrale).
+    if line_x > ball_x:
+        cost += (line_x - ball_x) * 50.0  # Panic penalty: SCAPPARE INDIETRO!
 
     if detailed:
         return {
             "total": cost,
-            "line_x": last_man_x,
-            "target_dynamic": target_x,
+            "line_x": line_x,          # Dove siamo (media ultimi 3)
+            "target_dynamic": target_x,# Dove dovremmo essere
+            "ideal_dist": dynamic_buffer, # Cuscinetto calcolato
             "ball_x": ball_x
         }
         
@@ -256,22 +273,30 @@ def cost_ball_pressure(df_home, ball_pos, detailed=False):
     return cost
 
 def cost_passing_lanes(df_home, obstacles_array, ball_pos, phase_type="Possesso offensivo", detailed=False):
-    # ... (parte iniziale invariata) ...
+    """
+    Calcola il costo dei passaggi usando una LOGICA IBRIDA (Saturazione + Bonus).
+    
+    1. Saturazione (Esponenziale): Punisce severamente se non si raggiunge il 'Target Score'.
+       Serve a garantire il minimo sindacale di opzioni.
+    2. Bonus (Lineare): Premia ulteriormente per ogni punto di qualità aggiunto.
+       Serve a spingere l'ottimizzatore a cercare l'eccellenza e non accontentarsi.
+    """
     home = df_home[['x', 'y']].values
-    player_names = df_home.index.tolist() # <--- RECUPERIAMO I NOMI
+    player_names = df_home.index.tolist() # Recuperiamo i nomi per il report
     n = len(home)
     
+    # Identifica portatore
     dists = np.linalg.norm(home - ball_pos, axis=1)
     ball_carrier_idx = np.argmin(dists) 
     p1 = home[ball_carrier_idx]
-    ball_carrier_name = player_names[ball_carrier_idx] # <--- NOME PORTATORE
+    ball_carrier_name = player_names[ball_carrier_idx]
 
     total_quality_score = 0.0
     valid_options_count = 0
     blocked_count = 0
     
-    valid_receivers = [] # <--- LISTA PER I NOMI
-
+    valid_receivers = [] # Lista per il report dettagliato
+    
     # Parametri specifici per fase
     is_offensive = "offensivo" in phase_type.lower()
     target_score = config.PASS_TARGET_SCORE_OFF if is_offensive else config.PASS_TARGET_SCORE_DEF
@@ -279,9 +304,9 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos, phase_type="Possesso 
     for j in range(n):
         if j == ball_carrier_idx: continue
         p2 = home[j]
-        receiver_name = player_names[j] # <--- NOME RICEVITORE
+        receiver_name = player_names[j]
         
-        # 1. Check Blocco
+        # 1. Check Blocco (Ostacoli)
         block = False
         for opp in obstacles_array:
             if point_line_distance(opp, p1, p2) < config.PASS_BLOCK_THRESHOLD:
@@ -290,40 +315,71 @@ def cost_passing_lanes(df_home, obstacles_array, ball_pos, phase_type="Possesso 
         
         if block:
             blocked_count += 1
-            continue 
+            continue # Passaggio bloccato -> Score 0
             
-        # 2. Check Lunghezza/Vicinanza
+        # 2. Valutazione Qualità Passaggio (Se libero)
         dist = np.linalg.norm(p1 - p2)
-        if dist > config.PASS_MAX_LEN: continue
-        if dist < 0.05: continue
+        
+        # Filtro lunghezza eccessiva
+        if dist > config.PASS_MAX_LEN:
+            continue
+            
+        # Filtro "Ammucchiata" (Importante per l'attacco!)
+        # Se sei troppo vicino (< 5m), non sei un'opzione utile, dai solo fastidio.
+        if dist < 0.05: 
+            continue
 
-        # Calcolo Score
+        # Calcolo Score Base
         pass_val = 1.0
+        
         if is_offensive:
+            # FASE OFFENSIVA: Premia la verticalità
+            # angle_score va da -1 (dietro) a 1 (avanti)
+            # Trasformiamo in moltiplicatore: 0.5 (dietro) a 1.5 (avanti)
             ang = angle_score(p1, p2)
             angle_multiplier = 1.0 + (ang * 0.5) 
             pass_val *= angle_multiplier
+            
         else:
-            if dist > 0.20: pass_val *= 0.8
+            # FASE DIFENSIVA: Premia la sicurezza
+            # Se il passaggio è medio-lungo (es. > 20m), vale un po' meno per il rischio
+            if dist > 0.20: 
+                pass_val *= 0.8
 
         total_quality_score += pass_val
         valid_options_count += 1
         
-        # AGGIUNGIAMO ALLA LISTA (Nome + Score formattato)
+        # Salviamo nome e score per il report
         valid_receivers.append(f"{receiver_name} ({pass_val:.1f})")
 
-    # ... (Calcolo costo finale invariato) ...
-    cost = config.PASS_PENALTY_NO_OPTS * np.exp(-total_quality_score / target_score)
+    # --- 3. Calcolo Costo Finale Ibrido ---
+    
+    # A. Componente di Sicurezza (Esponenziale)
+    # Punisce molto se siamo sotto il target, diventa quasi 0 se siamo sopra.
+    saturation_cost = config.PASS_PENALTY_NO_OPTS * np.exp(-total_quality_score / target_score)
+    
+    # B. Componente di Eccellenza (Bonus Lineare)
+    # Sottrae costo (dà bonus negativo) per ogni punto di qualità accumulato.
+    # Spinge a migliorare anche dopo aver raggiunto il target.
+    # Fattore 0.5: bilanciato per non ignorare totalmente la Coverage.
+    reward_factor = 0.5 
+    linear_bonus = total_quality_score * reward_factor
+    
+    # Costo Totale = Paura di sbagliare - Voglia di fare bene
+    total_cost = saturation_cost - linear_bonus
 
     if detailed:
         return {
-            "total": cost,
+            "total": total_cost,
             "quality_score": total_quality_score,
             "target_score": target_score,
             "valid_count": valid_options_count,
             "blocked_count": blocked_count,
-            "carrier": ball_carrier_name,      # <--- RESTITUIAMO CHI HA LA PALLA
-            "receivers": valid_receivers       # <--- RESTITUIAMO LA LISTA
+            "carrier": ball_carrier_name,
+            "receivers": valid_receivers,
+            # Info di debug utili
+            "cost_sat": saturation_cost,
+            "cost_bonus": -linear_bonus
         }
         
-    return cost
+    return total_cost
