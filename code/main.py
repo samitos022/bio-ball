@@ -28,11 +28,23 @@ def main():
     parser.add_argument("--scenario", type=str, default=None,
                         help="Name of the scenario in ground_truth.json (overrides historical data)")
 
+    parser.add_argument("--phase", type=str, default="Possesso offensivo",
+                        choices=["po", "pd", "fd"],
+                        help="Seleziona la fase di gioco da ottimizzare")
+
     args = parser.parse_args()
 
-    # Definiamo la fase su cui lavorare
-    phase_home = "Possesso offensivo" 
-    phase_away = "Fase difensiva"
+    phase_home = args.phase
+
+    if phase_home == "po":
+        phase_home = "Possesso offensivo"
+        phase_away = "Fase difensiva"
+    elif phase_home == "pd":
+        phase_home = "Possesso difensivo"
+        phase_away = "Fase difensiva"
+    elif phase_home == "fd":
+        phase_home = "Fase difensiva"
+        phase_away = "Possesso offensivo"
 
     # 2. Setup Dati
     data = setup_scenario(phase_home=phase_home, phase_away=phase_away, scenario_name=args.scenario)
@@ -122,7 +134,7 @@ def main():
     # B. Plot Orizzontale (Passiamo il DataFrame)
     plot_formation_with_ball_and_obstacles(
         best_fmt_df, 
-        f"Formazione Ottimizzata - {phase_home}",
+        f"Optimized Formation - {phase_home}",
         team='Home',
         color='blue',
         ball_position=data["ball_position"],
