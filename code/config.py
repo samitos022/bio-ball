@@ -76,19 +76,19 @@ PHASE_WEIGHTS = {
     
     "Possesso difensivo": {
         # Fase di Costruzione
-        "W_OFFSIDE":      100.0,
-        "W_COVERAGE": 23.6387,
-        "W_PASSING": 35.3722,
-        "W_BALL_PRESS": 10.0101,
-        "W_MARKING": 61.0412,
-        "W_COMPACTNESS": 87.8870,
-        "W_LINE_HEIGHT": 29.8935,
+        "W_OFFSIDE": 100.0,
+        "W_COVERAGE": 32.6387,
+        "W_PASSING": 7.3722,
+        "W_BALL_PRESS": 30.0101,
+        "W_MARKING": 2.50412,
+        "W_COMPACTNESS": 6.8870,
+        "W_LINE_HEIGHT": 5,
         "W_PREV_MARKING": 14.2057
     }
 }
 
 # PARAMETRI SOLVER
-CMA_MAXITER = 200
+CMA_MAXITER = 160
 CMA_POPSIZE = 20
 CMA_SIGMA_INIT = 0.15
 CMA_TOLFUN = 1e-4
