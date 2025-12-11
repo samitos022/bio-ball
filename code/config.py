@@ -1,11 +1,11 @@
 # config.py
 
-# PARAMETRI GENERALI
+# GENERAL PARAMETERS
 FIELD_LIMITS = (1.0, 1.0)
 MIN_DIST_PLAYER = 0.02
 OFFSIDE_ATTACK_DIR = 'right'
 
-# PARAMETRI AREA PORTIERE
+# GOALKEEPER AREA PARAMETERS
 GOALKEEPER_AREA = {
     "x_min": 0.0,
     "x_max": 0.165,
@@ -13,7 +13,7 @@ GOALKEEPER_AREA = {
     "y_max": 0.79
 }
 
-# PARAMETRI CONSTRAINTS (Sempre attivi)
+# CONSTRAINTS PARAMETERS
 PENALTY_MAX_THRESHOLD = 5000
 OBJ_W_CONSTRAINTS = 50.0
 PENALTY_W_BOUNDARY   = 100.0
@@ -22,7 +22,7 @@ PENALTY_W_PROXIMITY  = 50.0
 PENALTY_W_TRANSITION = 0.1
 PENALTY_W_ORDER      = 5.0
 
-# PARAMETRI FISICI COSTI
+# PHYSICS COSTS
 PASS_MAX_LEN = 0.45
 PASS_BLOCK_THRESHOLD = 0.03
 PASS_W_LONG = 1.5
@@ -30,13 +30,12 @@ PASS_W_ANGLE = 0.5
 PASS_W_BLOCK = 1.0
 PASS_PENALTY_NO_OPTS = 10.0
 
-# NUOVI PARAMETRI SATURAZIONE
-# Punteggio di qualità cumulativo target. 
-# Una volta raggiunto questo score, il costo scende drasticamente verso zero.
-PASS_TARGET_SCORE_OFF = 2.5  # Attacco: bastano ~2 passaggi di alta qualità (verticali)
-PASS_TARGET_SCORE_DEF = 3.5  # Difesa: servono ~3-4 passaggi sicuri (anche laterali)
+# PASSING OPTIONS PARAMETERS
+PASS_TARGET_SCORE_OFF = 2.5
+PASS_TARGET_SCORE_DEF = 3.5
 
-# === CONFIGURAZIONE PESI PER FASE ===
+
+# === WHEIGHTS CONFIGURATION FOR EACH PHASE ===
 # Se un peso è 0.0, l'obiettivo non viene calcolato per quella fase.
 
 PHASE_WEIGHTS = {
@@ -55,23 +54,18 @@ PHASE_WEIGHTS = {
     },
     
     "Possesso offensivo": {
-        "W_MARKING": 2.6146,
-        "W_COVERAGE": 34.7123,
-        #"W_PASSING": 10.2512,
-        #"W_OFFSIDE": 38.8458,
-        "W_BALL_PRESS": 30.0,
+        # Obiettivi Offensivi
+        "W_PASSING":        4.0, 
+        "W_OFFSIDE":        100.0,
+        "W_PREV_MARKING":   15.0,
+        "W_COVERAGE":       34.0,
+        "W_BALL_PRESS":     50.0,
         
 
         # Obiettivi Difensivi (Disattivati)
-        #"W_MARKING":      0.0,
-        "W_COMPACTNESS":  0.0,
-        "W_LINE_HEIGHT":  0.0,
-        
-        # Obiettivi Offensivi
-        #"W_COVERAGE":     20.0,    # Allargare il campo
-        "W_PASSING":      6.0,    # Trovare linee
-        "W_OFFSIDE":      100.0,    # Evitare fuorigioco (Regola)
-        "W_PREV_MARKING": 15.0
+        "W_MARKING":        0.0,
+        "W_COMPACTNESS":    0.0,
+        "W_LINE_HEIGHT":    2.0,
     },
     
     "Possesso difensivo": {

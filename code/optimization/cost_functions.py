@@ -194,7 +194,7 @@ def cost_defensive_line_height(df_home, ball_pos, detailed=False):
         # Ordina le posizioni X (dal più vicino alla porta 0.0 al più lontano)
         sorted_x = np.sort(outfield_x)
         # Prende i primi 3 (i 3 più arretrati) e fa la media
-        line_x = np.mean(sorted_x[:3])
+        line_x = np.mean(sorted_x[:1])
 
     ball_x = ball_pos[0]
 
