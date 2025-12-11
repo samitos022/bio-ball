@@ -1,0 +1,13 @@
+# Parametri ottimizzati per scenario: Difesa_Pressata
+# Fase: Possesso difensivo
+
+    "Possesso difensivo": 
+        "W_COVERAGE": 1.0768,
+        "W_PASSING": 37.5071,
+        "W_BALL_PRESS": 69.7826,
+        "W_MARKING": 2.7753,
+        "W_COMPACTNESS": 30.3314,
+        "W_LINE_HEIGHT": 48.6471,
+        "W_PREV_MARKING": 32.7296,
+        "PASS_W_BLOCK": 10.1363,
+    },
