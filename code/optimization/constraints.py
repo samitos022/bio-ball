@@ -2,10 +2,7 @@ import numpy as np
 import config 
 
 def penalty_total(positions, detailed=False):
-    """
-    Calcola le penalità strutturali.
-    Se detailed=True, restituisce un dizionario con i parziali.
-    """
+
     penalty = 0.0
     phases = list(positions.keys()) 
 
@@ -17,46 +14,85 @@ def penalty_total(positions, detailed=False):
     pen_collision = 0.0
     pen_order = 0.0
     pen_transition = 0.0
+    pen_goalkeeper = 0.0
 
     for phase_name, df in positions.items():
+
         pos = df[["x", "y"]].to_numpy()
         current_x = pos[:, 0]
         current_y = pos[:, 1]
         n_players = len(pos)
 
-        # 1. BOUNDARIES
+        # ------------------------------------------------
+        # 1. BOUNDARIES standard
+        # ------------------------------------------------
         out_x = (current_x < 0) | (current_x > config.FIELD_LIMITS[0])
         out_y = (current_y < 0) | (current_y > config.FIELD_LIMITS[1])
-        curr_bound = config.PENALTY_W_BOUNDARY * (np.sum(out_x) + np.sum(out_y))
-        pen_boundary += curr_bound
-        
-        # 2. PROXIMITY & ORDER
+        pen_boundary += config.PENALTY_W_BOUNDARY * (np.sum(out_x) + np.sum(out_y))
+
+        # ------------------------------------------------
+        # GOALKEEPER RESTRICTION
+        # ------------------------------------------------
+        gk_x = current_x[0]
+        gk_y = current_y[0]
+
+        if not (config.GOALKEEPER_AREA["x_min"] <= gk_x <= config.GOALKEEPER_AREA["x_max"] and
+                config.GOALKEEPER_AREA["y_min"] <= gk_y <= config.GOALKEEPER_AREA["y_max"]):
+
+            # calcolo distanza minima da area box
+            dx = max(0, config.GOALKEEPER_AREA["x_min"] - gk_x, gk_x - config.GOALKEEPER_AREA["x_max"])
+            dy = max(0, config.GOALKEEPER_AREA["y_min"] - gk_y, gk_y - config.GOALKEEPER_AREA["y_max"])
+            dist_out = np.sqrt(dx*dx + dy*dy)
+
+            pen_goalkeeper += config.PENALTY_W_GOALKEEPER * (dist_out ** 2)
+
+        # ------------------------------------------------
+        # 2. COLLISIONI & ORDINE
+        # ------------------------------------------------
+
+        alpha = 40  # coefficiente di ripidità, modificarlo per avere più/meno severità
+
         for i in range(n_players):
             for j in range(i + 1, n_players):
-                # A. Collisioni
+
                 dist = np.linalg.norm(pos[i] - pos[j])
+
                 if dist < config.MIN_DIST_PLAYER:
-                    curr_col = config.PENALTY_W_PROXIMITY * (config.MIN_DIST_PLAYER - dist) ** 2
-                    pen_collision += curr_col
+                    delta = config.MIN_DIST_PLAYER - dist
 
-                # B. Ordine Relativo
-                if phase_name != phases[0]:
-                    if ref_x[i] < ref_x[j] and current_x[i] > current_x[j]:
-                         pen_order += config.PENALTY_W_ORDER * (current_x[i] - current_x[j])
-                    if ref_y[i] < ref_y[j] - 0.1 and current_y[i] > current_y[j]:
-                         pen_order += config.PENALTY_W_ORDER * (current_y[i] - current_y[j])
+                    # penalità esponenziale
+                    exp_pen = config.PENALTY_W_PROXIMITY * np.exp(alpha * delta)
 
-    # 3. TRANSITION
+                    # penalità hard addizionale se dist è davvero piccola
+                    if dist < config.MIN_DIST_PLAYER * 0.5:
+                        exp_pen *= 3  
+
+                    pen_collision += exp_pen
+
+    # ------------------------------------------------
+    # 3. TRANSITION SMOOTHNESS
+    # ------------------------------------------------
     for i in range(len(phases) - 1):
         df1 = positions[phases[i]]
         df2 = positions[phases[i + 1]]
         common = df1.index.intersection(df2.index)
-        p1 = df1.loc[common, ["x", "y"]].to_numpy()
-        p2 = df2.loc[common, ["x", "y"]].to_numpy()
-        diffs = np.linalg.norm(p2 - p1, axis=1)
+        diffs = np.linalg.norm(
+            df2.loc[common, ["x", "y"]].to_numpy() -
+            df1.loc[common, ["x", "y"]].to_numpy(),
+            axis=1
+        )
         pen_transition += config.PENALTY_W_TRANSITION * np.sum(diffs ** 2)
 
-    total_penalty = pen_boundary + pen_collision + pen_order + pen_transition
+    # ============================
+    # TOTALE
+    # ============================
+    total_penalty = (
+        pen_boundary +
+        pen_collision +
+        pen_order +
+        pen_transition +
+        pen_goalkeeper
+    )
 
     if detailed:
         return {
@@ -64,7 +100,8 @@ def penalty_total(positions, detailed=False):
             "boundary": pen_boundary,
             "collision": pen_collision,
             "order": pen_order,
-            "transition": pen_transition
+            "transition": pen_transition,
+            "goalkeeper": pen_goalkeeper
         }
-    
+
     return total_penalty
