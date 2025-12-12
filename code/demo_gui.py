@@ -118,7 +118,7 @@ class BioBallAppFinal:
         phases = [
             ("Attacking possession", "Attacking possession"),
             ("Defensive possession", "Defensive possession"),
-            ("Defensive phase", "Defensive Phase")
+            ("Defensive phase", "Defensive phase")
         ]
         for text, val in phases:
             ttk.Radiobutton(self.sidebar, text=text, variable=self.var_phase, value=val).pack(anchor="w")
