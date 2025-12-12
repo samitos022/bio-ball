@@ -63,7 +63,7 @@ class BioBallAppFinal:
         # Variables
         self.scenarios = self.load_scenarios()
         self.var_scenario = tk.StringVar(value="Historical")
-        self.var_phase = tk.StringVar(value="Defensive Possession")
+        self.var_phase = tk.StringVar(value="Defensive possession")
         self.var_algo = tk.StringVar(value="cma_static")
         self.is_running = False
         
@@ -116,9 +116,9 @@ class BioBallAppFinal:
         # Game Phase
         ttk.Label(self.sidebar, text="Game Phase:").pack(anchor="w")
         phases = [
-            ("Attacking Possession", "Attacking Possession"),
-            ("Defensive Possession", "Defensive Possession"),
-            ("Defensive Phase", "Defensive Phase")
+            ("Attacking possession", "Attacking possession"),
+            ("Defensive possession", "Defensive possession"),
+            ("Defensive phase", "Defensive Phase")
         ]
         for text, val in phases:
             ttk.Radiobutton(self.sidebar, text=text, variable=self.var_phase, value=val).pack(anchor="w")
@@ -360,29 +360,22 @@ class BioBallAppFinal:
         try:
             scenario_key = None if scenario == "Historical" else scenario
             
-            # Map English phases to Italian (backend expects Italian)
-            phase_map = {
-                "Attacking Possession": "Possesso offensivo",
-                "Defensive Possession": "Possesso difensivo",
-                "Defensive Phase": "Fase difensiva"
-            }
-            phase_it = phase_map.get(phase, phase)
-            phase_away = "Fase difensiva" if "possesso" in phase_it.lower() else "Possesso offensivo"
+            phase_away = "Defensive phase" if "possession" in phase else "Attacking possession"
             
-            data = setup_scenario(scenario_name=scenario_key, phase_home=phase_it, phase_away=phase_away)
-            
+            data = setup_scenario(scenario_name=scenario_key, phase_home=phase, phase_away=phase_away)
+
             best_vec, cost_history, final_obstacles = None, [], None
             
             if algo == "cma_static":
                 best_vec, cost_history = run_cma_static(
                     data["initial_guess"], data["obstacles_matrix"], 
-                    data["ball_position"], data["starters_home"], phase_it
+                    data["ball_position"], data["starters_home"], phase
                 )
                 final_obstacles = data["obstacles_matrix"]
             elif algo == "cma_dynamic":
                 best_df, cost_history = run_cma_dynamic(
                     data["initial_guess"], data["df_away_start"], 
-                    data["ball_position"], data["starters_home"], phase_it
+                    data["ball_position"], data["starters_home"], phase
                 )
                 best_vec = best_df.values.flatten()
                 home_df = flat_to_formation(best_vec, data["starters_home"])
@@ -391,11 +384,11 @@ class BioBallAppFinal:
             elif algo == "de":
                 best_vec, _, cost_history = run_de_optimization(
                     data["initial_guess"], data["df_away_start"],
-                    data["ball_position"], data["starters_home"], phase_it
+                    data["ball_position"], data["starters_home"], phase
                 )
                 final_obstacles = data["obstacles_matrix"]
             
-            report_data = self.calculate_report(best_vec, data, final_obstacles, phase_it)
+            report_data = self.calculate_report(best_vec, data, final_obstacles, phase)
             self.root.after(0, self.on_finish, best_vec, cost_history, data, final_obstacles, 
                           report_data, phase, algo)
             
@@ -406,7 +399,7 @@ class BioBallAppFinal:
         df = flat_to_formation(vector, data["starters_home"])
         ball = data["ball_position"]
         ref = data["df_home_start"]
-        weights = config.PHASE_WEIGHTS.get(phase, config.PHASE_WEIGHTS["Fase difensiva"])
+        weights = config.PHASE_WEIGHTS.get(phase, config.PHASE_WEIGHTS["Defensive phase"])
         report = []
         
         res_c = penalty_total({"Start": ref, "Candidate": df}, detailed=True)
