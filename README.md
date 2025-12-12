@@ -196,6 +196,40 @@ python main.py --mode cma_dynamic --phase op
 ```bash
 python main.py --mode de --phase op
 ```
+---
+
+## 🖥️ Graphical User Interface (GUI)
+
+In addition to command-line execution, we provide a **graphical interface** designed to visually inspect formations, constraints, and optimization results.
+
+The GUI allows users to:
+
+* Visualize **home and away formations** on a football pitch
+* Display the **ball position**, passing lines, and coverage areas
+* Inspect constraint violations and tactical structures
+* Compare **reference vs optimized formations**
+
+The GUI is mainly intended for **analysis and interpretation**, rather than configuration.
+
+### ▶️ Launching the GUI
+
+The GUI can be launched by running the dedicated script:
+
+```bash
+python demo_gui.py
+```
+
+or, depending on the project structure, automatically after an optimization run if enabled in the configuration.
+
+### 🎯 Purpose of the GUI
+
+The GUI is not meant to replace quantitative evaluation, but to:
+
+* Provide **qualitative tactical insight**
+* Help debug and validate the objective function
+* Improve interpretability of evolutionary outcomes
+
+It complements numerical metrics such as final fitness values and convergence curves.
 
 ---
 
