@@ -373,14 +373,13 @@ class BioBallAppFinal:
                 )
                 final_obstacles = data["obstacles_matrix"]
             elif algo == "cma_dynamic":
-                best_df, cost_history = run_cma_dynamic(
+                best_vec, cost_history = run_cma_dynamic(
                     data["initial_guess"], data["df_away_start"], 
                     data["ball_position"], data["starters_home"], phase
                 )
-                best_vec = best_df.values.flatten()
                 home_df = flat_to_formation(best_vec, data["starters_home"])
                 away_df = react_away_to_home(home_df, data["df_away_start"], data["ball_position"])
-                final_obstacles = away_df.values
+                final_obstacles = away_df[["x", "y"]].to_numpy()
             elif algo == "de":
                 best_vec, _, cost_history = run_de_optimization(
                     data["initial_guess"], data["df_away_start"],
