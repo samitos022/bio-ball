@@ -42,7 +42,7 @@ def main():
     elif phase_home == "pd":
         phase_home = "Defensive possession"
         phase_away = "Defensive phase"
-    elif phase_home == "fd":
+    elif phase_home == "dp":
         phase_home = "Defensive phase"
         phase_away = "Attacking possession"
 
