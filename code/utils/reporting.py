@@ -14,17 +14,17 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
     else:
         df = flat_to_formation(formation_data, player_names)
 
-    weights = config.PHASE_WEIGHTS.get(phase_name, config.PHASE_WEIGHTS["Fase difensiva"])
+    weights = config.PHASE_WEIGHTS.get(phase_name, config.PHASE_WEIGHTS["Defensive phase"])
     
     print("\n" + "="*100)
     print(f"FITNESS REPORT: {phase_name.upper()}")
     print("="*100)
-    print(f"{'OBIETTIVO':<45} | {'VAL GREZZO':<12} | {'PESO':<8} | {'COSTO':<12}")
+    print(f"{'OBJECTIVE / DETAIL':<45} | {'RAW VALUE':<12} | {'WEIGHT':<8} | {'FINAL COST':<12}")
     print("-" * 100)
 
     total_fitness = 0.0
 
-    # --- 1. CONSTRAINTS ---
+    # --- 1. CONSTRAINTS (Hard) ---
     pos_dict = {"Start": initial_df_ref, "Candidate": df}
     res_constr = penalty_total(pos_dict, detailed=True)
     cost_c = res_constr["total"] * config.OBJ_W_CONSTRAINTS
@@ -32,20 +32,20 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
     
     print(f"\033[1m{'Constraints (Hard)':<45} | {res_constr['total']:<12.4f} | {config.OBJ_W_CONSTRAINTS:<8} | {cost_c:<12.4f}\033[0m")
     if res_constr["total"] > 0.0001:
-        if res_constr['boundary'] > 0: print(f"  ├─ Fuori Campo: {res_constr['boundary']:.4f}")
-        if res_constr['collision'] > 0: print(f"  ├─ Collisioni:  {res_constr['collision']:.4f}")
-        if res_constr['transition'] > 0: print(f"  └─ Transizione: {res_constr['transition']:.4f}")
+        if res_constr['boundary'] > 0: print(f"  ├─ Out of Bounds: {res_constr['boundary']:.4f}")
+        if res_constr['collision'] > 0: print(f"  ├─ Collisions:    {res_constr['collision']:.4f}")
+        if res_constr['transition'] > 0: print(f"  └─ Transition:    {res_constr['transition']:.4f}")
 
     print("-" * 100)
 
-    # --- 2. OBIETTIVI OFFENSIVI ---
+    # --- 2. OFFENSIVE OBJECTIVES ---
     
     # Coverage
     if weights.get("W_COVERAGE", 0) > 0:
         res = cost_coverage(df, detailed=True)
         cost = res["total"] * weights["W_COVERAGE"]
         total_fitness += cost
-        print(f"\033[1m{'Coverage (Massimizza Area)':<45} | {res['total']:<12.4f} | {weights['W_COVERAGE']:<8} | {cost:<12.4f}\033[0m")
+        print(f"\033[1m{'Pitch Coverage':<45} | {res['total']:<12.4f} | {weights['W_COVERAGE']:<8} | {cost:<12.4f}\033[0m")
         print(f"  └─ Coverage ratio: {res['coverage_ratio']:.4f}")
 
     # Passing Lanes
@@ -54,22 +54,19 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         cost = res["total"] * weights["W_PASSING"]
         total_fitness += cost
         
-        print(f"\033[1m{'Passing Lanes (Saturazione)':<45} | {res['total']:<12.4f} | {weights['W_PASSING']:<8} | {cost:<12.4f}\033[0m")
+        print(f"\033[1m{'Passing Availability':<45} | {res['total']:<12.4f} | {weights['W_PASSING']:<8} | {cost:<12.4f}\033[0m")
         print(f"  ├─ Quality Score:     {res['quality_score']:.2f} / {res['target_score']} (Target)")
         
-        # NUOVA SEZIONE DI STAMPA
         if 'carrier' in res:
-            print(f"  ├─ Portatore Palla:   {res['carrier']}")
+            print(f"  ├─ Ball Carrier:      {res['carrier']}")
             
             if res['valid_count'] > 0:
-                # Uniamo i nomi con una virgola
                 receivers_str = ", ".join(res['receivers'])
-                # Se la stringa è troppo lunga, andiamo a capo
-                print(f"  ├─ Ricevitori Validi: {receivers_str}")
+                print(f"  ├─ Valid Receivers:   {receivers_str}")
             else:
-                print(f"  ├─ Ricevitori Validi: NESSUNO (Isolato!)")
+                print(f"  ├─ Valid Receivers:   NONE (Isolated!)")
         
-        print(f"  └─ Passaggi Bloccati: {res['blocked_count']}")
+        print(f"  └─ Blocked Passes:    {res['blocked_count']}")
 
     # Offside Avoidance
     if weights.get("W_OFFSIDE", 0) > 0:
@@ -78,25 +75,26 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         total_fitness += cost
         print(f"\033[1m{'Offside Avoidance':<45} | {res['total']:<12.4f} | {weights['W_OFFSIDE']:<8} | {cost:<12.4f}\033[0m")
         if res['total'] > 0:
-            print(f"  └─ Metri oltre la linea: {res['meters']:.4f}")
+            print(f"  └─ Meters Offside:    {res['meters']:.4f}")
     
+    # Preventive Marking (Counter-attack prevention)
     if weights.get("W_PREV_MARKING", 0) > 0:
         res = cost_preventive_marking(df, obstacles, detailed=True)
         c = res["total"] * weights["W_PREV_MARKING"]
         total_fitness += c
         print(f"\033[1m{'Preventive Marking':<45} | {res['total']:<12.4f} | {weights['W_PREV_MARKING']:<8} | {c:<12.4f}\033[0m")
-        print(f"  └─ Threats: {res['threats']:.4f}")
+        print(f"  └─ Threats:           {res['threats']:.4f}")
 
 
-    # --- 3. OBIETTIVI DIFENSIVI ---
+    # --- 3. DEFENSIVE OBJECTIVES ---
 
     # Marking
     if weights.get("W_MARKING", 0) > 0:
         res = cost_marking(df, obstacles, detailed=True)
         cost = res["total"] * weights["W_MARKING"]
         total_fitness += cost
-        print(f"\033[1m{'Marking (Distanza Avversari)':<45} | {res['total']:<12.4f} | {weights['W_MARKING']:<8} | {cost:<12.4f}\033[0m")
-        print(f"  └─ Distanza media marcatore: {res['avg_dist']*100:.1f} metri")
+        print(f"\033[1m{'Defensive Marking':<45} | {res['total']:<12.4f} | {weights['W_MARKING']:<8} | {cost:<12.4f}\033[0m")
+        print(f"  └─ Avg Marker Dist.:  {res['avg_dist']*100:.1f} meters")
 
     # Compactness
     if weights.get("W_COMPACTNESS", 0) > 0:
@@ -104,7 +102,7 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         cost = res["total"] * weights["W_COMPACTNESS"]
         total_fitness += cost
         print(f"\033[1m{'Defensive Compactness':<45} | {res['total']:<12.4f} | {weights['W_COMPACTNESS']:<8} | {cost:<12.4f}\033[0m")
-        print(f"  └─ Dispersione dal centro: {res['dispersion']:.4f}")
+        print(f"  └─ Dispersion:        {res['dispersion']:.4f}")
 
     # Line Height
     if weights.get("W_LINE_HEIGHT", 0) > 0:
@@ -112,18 +110,19 @@ def print_fitness_breakdown(formation_data, player_names, obstacles, ball_pos, i
         cost = res["total"] * weights["W_LINE_HEIGHT"]
         total_fitness += cost
         print(f"\033[1m{'Defensive Line Height':<45} | {res['total']:<12.4f} | {weights['W_LINE_HEIGHT']:<8} | {cost:<12.4f}\033[0m")
-        print(f"  └─ X Ultimo Difensore: {res['line_x']:.4f} (Target: Alto)")
+        print(f"  └─ Last Defender X:   {res['line_x']:.4f} (Target: High)")
 
     # --- 4. COMMON ---
     
+    # Ball Pressure / Support
     if weights.get("W_BALL_PRESS", 0) > 0:
         res = cost_ball_pressure(df, ball_pos, detailed=True)
         cost = res["total"] * weights["W_BALL_PRESS"]
         total_fitness += cost
-        label = "Ball Pressing" if "difensiva" in phase_name.lower() else "Ball Support"
+        label = "Ball Pressing" if "defensive" in phase_name.lower() else "Ball Support"
         print(f"\033[1m{label:<45} | {res['total']:<12.4f} | {weights['W_BALL_PRESS']:<8} | {cost:<12.4f}\033[0m")
-        print(f"  └─ Distanza min dalla palla: {res['dist']*100:.1f} metri")
+        print(f"  └─ Min Dist to Ball:  {res['dist']*100:.1f} meters")
 
     print("-" * 100)
-    print(f"\033[1m{'TOTALE FITNESS':<79} | {total_fitness:<12.4f}\033[0m")
+    print(f"\033[1m{'TOTAL FITNESS':<79} | {total_fitness:<12.4f}\033[0m")
     print("="*100 + "\n")

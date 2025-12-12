@@ -3,7 +3,7 @@ from tkinter import simpledialog, messagebox
 import json
 import os
 
-# Configurazione Campo
+# Field Configuration
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 520 
 PLAYER_RADIUS = 10
@@ -15,7 +15,7 @@ class FormationCreator:
         self.root = root
         self.root.title("Bio-Ball Scenario Creator (Home, Away, Ball)")
         
-        # Struttura dati interna
+        # Internal data structure
         # items_map: id_canvas -> {type: "home"|"away"|"ball", id: index, text_id: id}
         self.items_map = {} 
         self.drag_data = {"x": 0, "y": 0, "item": None}
@@ -29,19 +29,19 @@ class FormationCreator:
         inner_frame = tk.Frame(top_frame, bg="#ddd")
         inner_frame.pack(padx=10, pady=10)
 
-        tk.Label(inner_frame, text="Nome Scenario:", bg="#ddd").pack(side=tk.LEFT)
+        tk.Label(inner_frame, text="Scenario Name:", bg="#ddd").pack(side=tk.LEFT)
         self.name_entry = tk.Entry(inner_frame, width=25)
         self.name_entry.pack(side=tk.LEFT, padx=5)
 
-        save_btn = tk.Button(inner_frame, text="💾 SALVA SCENARIO", command=self.save_scenario, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
+        save_btn = tk.Button(inner_frame, text="💾 SAVE SCENARIO", command=self.save_scenario, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
         save_btn.pack(side=tk.LEFT, padx=15)
         
-        # Legenda
+        # Legend
         legend_frame = tk.Frame(root)
         legend_frame.pack(pady=5)
-        tk.Label(legend_frame, text="🔴 Casa (Target)", fg="red", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
-        tk.Label(legend_frame, text="🔵 Avversari", fg="blue", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
-        tk.Label(legend_frame, text="🟡 Palla", fg="#DAA520", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
+        tk.Label(legend_frame, text="🔴 Home (Target)", fg="red", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
+        tk.Label(legend_frame, text="🔵 Away (Opponents)", fg="blue", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
+        tk.Label(legend_frame, text="🟡 Ball", fg="#DAA520", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=10)
 
         # Canvas
         self.canvas = tk.Canvas(root, width=CANVAS_WIDTH, height=CANVAS_HEIGHT, bg="#2E8B57")
@@ -50,20 +50,24 @@ class FormationCreator:
         self.draw_pitch()
         self.init_entities()
 
-        # Binding Mouse
+        # Mouse Bindings
         self.canvas.tag_bind("movable", "<ButtonPress-1>", self.on_press)
         self.canvas.tag_bind("movable", "<ButtonRelease-1>", self.on_release)
         self.canvas.tag_bind("movable", "<B1-Motion>", self.on_motion)
 
     def draw_pitch(self):
-        # Disegno campo classico
+        """Draws standard pitch markings."""
+        # Border
         self.canvas.create_rectangle(10, 10, CANVAS_WIDTH-10, CANVAS_HEIGHT-10, outline="white", width=2)
+        # Midfield
         self.canvas.create_line(CANVAS_WIDTH/2, 10, CANVAS_WIDTH/2, CANVAS_HEIGHT-10, fill="white", width=2)
         self.canvas.create_oval(CANVAS_WIDTH/2-50, CANVAS_HEIGHT/2-50, CANVAS_WIDTH/2+50, CANVAS_HEIGHT/2+50, outline="white", width=2)
+        # Penalty Areas
         self.canvas.create_rectangle(10, CANVAS_HEIGHT/2-100, 130, CANVAS_HEIGHT/2+100, outline="white", width=2)
         self.canvas.create_rectangle(CANVAS_WIDTH-130, CANVAS_HEIGHT/2-100, CANVAS_WIDTH-10, CANVAS_HEIGHT/2+100, outline="white", width=2)
 
     def create_token(self, nx, ny, color, label, type_name, idx):
+        """Creates a movable token (Player/Ball) on the canvas."""
         cx = nx * CANVAS_WIDTH
         cy = ny * CANVAS_HEIGHT
         radius = BALL_RADIUS if type_name == "ball" else PLAYER_RADIUS
@@ -81,7 +85,7 @@ class FormationCreator:
             "type": type_name, 
             "id": idx, 
             "text_id": text_id,
-            "oval_id": item_id # self reference
+            "oval_id": item_id 
         }
         if text_id:
             self.items_map[text_id] = {
@@ -91,10 +95,10 @@ class FormationCreator:
             }
 
     def init_entities(self):
-        # 1. PALLA (Centro campo)
+        # 1. BALL (Center)
         self.create_token(0.5, 0.5, "yellow", "⚽", "ball", 0)
 
-        # 2. SQUADRA DI CASA (Red - 4-4-2 default) - Quelli che ottimizzi
+        # 2. HOME TEAM (Red - Default 4-4-2)
         home_pos = [
             (0.05, 0.5), # GK
             (0.25, 0.2), (0.25, 0.4), (0.25, 0.6), (0.25, 0.8), # Def
@@ -104,7 +108,7 @@ class FormationCreator:
         for i, (nx, ny) in enumerate(home_pos):
             self.create_token(nx, ny, "red", str(i+1), "home", i)
 
-        # 3. AVVERSARI (Blue - 4-4-2 speculare default) - Gli ostacoli
+        # 3. AWAY TEAM (Blue - Mirrored 4-4-2)
         away_pos = [
             (0.95, 0.5), # GK Opp
             (0.75, 0.2), (0.75, 0.4), (0.75, 0.6), (0.75, 0.8),
@@ -114,12 +118,12 @@ class FormationCreator:
         for i, (nx, ny) in enumerate(away_pos):
             self.create_token(nx, ny, "blue", str(i+1), "away", i)
 
-    # --- DRAG & DROP ---
+    # --- DRAG & DROP LOGIC ---
     def on_press(self, event):
         item = self.canvas.find_closest(event.x, event.y)[0]
         if item not in self.items_map: return
         
-        # Se clicco sul testo, prendo l'oval
+        # If text is clicked, grab the oval
         if "oval_id" in self.items_map[item]:
             item = self.items_map[item]["oval_id"]
 
@@ -145,11 +149,11 @@ class FormationCreator:
             self.drag_data["x"] = event.x
             self.drag_data["y"] = event.y
 
-    # --- SAVE ---
+    # --- SAVE LOGIC ---
     def save_scenario(self):
         name = self.name_entry.get().strip()
         if not name:
-            messagebox.showwarning("Error", "Inserisci un nome per lo scenario!")
+            messagebox.showwarning("Error", "Please enter a scenario name!")
             return
 
         scenario_data = {
@@ -158,9 +162,9 @@ class FormationCreator:
             "ball": []
         }
 
-        # Estrai coordinate
+        # Extract normalized coordinates
         for item_id, data in self.items_map.items():
-            if "text_id" in data: # È un oval (token principale)
+            if "text_id" in data: # Is oval (main token)
                 coords = self.canvas.coords(item_id)
                 cx = (coords[0] + coords[2]) / 2
                 cy = (coords[1] + coords[3]) / 2
@@ -175,7 +179,7 @@ class FormationCreator:
                 else:
                     scenario_data[t][idx] = [nx, ny]
 
-        # Salva su file
+        # Load existing JSON
         full_db = {}
         if os.path.exists(OUTPUT_FILE):
             try:
@@ -188,7 +192,7 @@ class FormationCreator:
         with open(OUTPUT_FILE, "w") as f:
             json.dump(full_db, f, indent=4)
         
-        messagebox.showinfo("Salvato", f"Scenario '{name}' salvato con successo!")
+        messagebox.showinfo("Saved", f"Scenario '{name}' saved successfully!")
 
 if __name__ == "__main__":
     root = tk.Tk()

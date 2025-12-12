@@ -6,12 +6,10 @@ from optimization.objectives import objective_function
 from utils.away_reaction import react_away_to_home
 import config
 
-# Aggiunto phase_name
-def run_optimization(initial_guess, initial_away_df, ball_position, player_names, phase_name="Fase difensiva"):
+def run_optimization(initial_guess, initial_away_df, ball_position, player_names, phase_name="Defensive phase"):
 
     initial_df_ref = flat_to_formation(initial_guess, player_names)
-    
-    # Argomenti: mode='dynamic'
+   
     fitness_args = (player_names, initial_away_df, ball_position, initial_df_ref, phase_name, 'dynamic')
     
     sigma_init = config.CMA_SIGMA_INIT
@@ -26,10 +24,10 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
     es = cma.CMAEvolutionStrategy(initial_guess, sigma_init, options)
     cost_history = []
 
-    print(f"Inizio ottimizzazione DYNAMIC ({phase_name})...")
+    print(f"Starting DYNAMIC optimization ({phase_name})...")
     
     prev_best_vector = initial_guess.copy()
-    SAVE_EVERY = 5 # Meno frequente per velocità
+    SAVE_EVERY = 5
     INTERPOLATION_STEPS = 4
 
     while not es.stop():
@@ -47,8 +45,6 @@ def run_optimization(initial_guess, initial_away_df, ball_position, player_names
             if f < best_cost_gen:
                 best_cost_gen = f
                 best_vec_gen = x
-                # Ricalcoliamo la reazione solo per il plot del migliore
-                # (Nota: un po' inefficiente ricalcolarlo, ma sicuro)
                 df_home = flat_to_formation(x, player_names)
                 best_df_away_gen = react_away_to_home(df_home, initial_away_df, ball_position)
 

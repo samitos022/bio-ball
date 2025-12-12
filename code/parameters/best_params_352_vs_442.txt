@@ -1,7 +1,7 @@
 # Parametri ottimizzati per scenario: 352_vs_442
-# Fase: Possesso offensivo
+# Fase: Attacking possession
 
-    "Possesso offensivo": 
+    "Attacking possession": 
         "W_MARKING": 2.6146,
         "W_COVERAGE": 14.7123,
         "W_PASSING": 17.2512,
