@@ -1,103 +1,100 @@
 import numpy as np
-import pandas as pd  
+import pandas as pd
 
 def react_away_to_home(
     home_df,
     base_away_df,
     ball_pos,
     keeper_factor=0.03,
-    block_lateral=0.30,     # molto più forte → squadra slitta verso lato palla
-    block_vertical=0.20,    # sale/scende molto di più → più realistica
-    shape_compactness=0.35, # compattezza reparti
-    marking_factor=0.12,    # marcatura più evidente
+    block_lateral=0.30,     # Shifts team towards the ball side
+    block_vertical=0.20,    # Adjusts defensive line height
+    shape_compactness=0.35, # Tightens distances within tactical lines
+    marking_factor=0.12,    # Intensity of man-marking
     max_marking_distance=0.25,
-    pressing_players=3,     # aumenta giocatori che reagiscono
-    pressing_factor=0.12    # pressing più "vero"
+    pressing_players=3,     # Number of players chasing the ball
+    pressing_factor=0.12    # Intensity of pressing
 ):
+    """
+    Calculates the reactive positions of the Away team based on the ball
+    and Home team positions using a deterministic heuristic model.
+    """
+    # Create a copy to avoid modifying the original data
     away = base_away_df.copy().reset_index(drop=True)
 
     n = len(away)
     keeper_idx = 0
-    field_idx = np.arange(1, n)
+    outfield_idx = np.arange(1, n) # Assumes index 0 is always the GK
 
+    # Convert to numpy for vectorization
     away_xy = away[["x", "y"]].to_numpy(float)
     home_xy = home_df[["x", "y"]].to_numpy(float)
     ball_pos = np.asarray(ball_pos, float)
 
-    # ================
-    # 1) SCALATA DEL BLOCCO
-    # ================
-    mean_x = away_xy[field_idx, 0].mean()
-    mean_y = away_xy[field_idx, 1].mean()
+    # 1. BLOCK SHIFTING (Team Geometry)
+    mean_x = away_xy[outfield_idx, 0].mean()
+    mean_y = away_xy[outfield_idx, 1].mean()
 
-    # LATERALE verso il lato palla
-    away_xy[field_idx, 1] += (ball_pos[1] - mean_y) * block_lateral
+    # Lateral shift towards the ball side
+    away_xy[outfield_idx, 1] += (ball_pos[1] - mean_y) * block_lateral
 
-    # VERTICALE verso la profondità palla
-    away_xy[field_idx, 0] += (ball_pos[0] - mean_x) * block_vertical
+    # Vertical shift (depth) based on ball position
+    away_xy[outfield_idx, 0] += (ball_pos[0] - mean_x) * block_vertical
 
-    # ================
-    # 2) ASSEGNAZIONE DEI REPARTI
-    # ================
-    ordered = field_idx[np.argsort(away_xy[field_idx, 0])]
+    # 2. TACTICAL LINES ADJUSTMENT
+    # Sort outfield players by X to identify Defenders, Midfielders, Attackers
+    sorted_indices = outfield_idx[np.argsort(away_xy[outfield_idx, 0])]
 
-    if len(ordered) >= 10:
-        DEF = ordered[0:4]
-        MID = ordered[4:7]
-        ATT = ordered[7:10]
+    if len(sorted_indices) >= 10:
+        def_idx = sorted_indices[0:4]
+        mid_idx = sorted_indices[4:7]
+        att_idx = sorted_indices[7:10]
     else:
-        # fallback semplice
-        k = len(ordered)//3
-        DEF = ordered[:k]
-        MID = ordered[k:2*k]
-        ATT = ordered[2*k:]
+        # Fallback: split into thirds
+        k = len(sorted_indices) // 3
+        def_idx = sorted_indices[:k]
+        mid_idx = sorted_indices[k:2*k]
+        att_idx = sorted_indices[2*k:]
 
-    # DIFESA: compatta
-    away_xy[DEF] += (away_xy[DEF].mean(axis=0) - away_xy[DEF]) * shape_compactness
+    # Defense: High compactness
+    away_xy[def_idx] += (away_xy[def_idx].mean(axis=0) - away_xy[def_idx]) * shape_compactness
 
-    # CENTROCAMPO: più dinamico
-    away_xy[MID] += (away_xy[MID].mean(axis=0) - away_xy[MID]) * (shape_compactness * 0.6)
+    # Midfield: Moderate compactness
+    away_xy[mid_idx] += (away_xy[mid_idx].mean(axis=0) - away_xy[mid_idx]) * (shape_compactness * 0.6)
 
-    # ATTACCO: reagisce molto alla palla
-    away_xy[ATT] += (ball_pos - away_xy[ATT]) * 0.25
+    # Attack: Reacts aggressively to ball position
+    away_xy[att_idx] += (ball_pos - away_xy[att_idx]) * 0.25
 
-
-    # ================
-    # 3) MARCATURA UOMO (MODERATA)
-    # ================
-    for i in field_idx:
+    # 3. MAN MARKING (Proximity based)
+    for i in outfield_idx:
+        # Find nearest opponent
         dists = np.linalg.norm(home_xy - away_xy[i], axis=1)
-        closest = np.argmin(dists)
+        closest_home_idx = np.argmin(dists)
 
-        vec = home_xy[closest] - away_xy[i]
-        d = np.linalg.norm(vec)
+        vec = home_xy[closest_home_idx] - away_xy[i]
+        dist = np.linalg.norm(vec)
 
-        if d < max_marking_distance:
+        # Move closer if within marking range
+        if dist < max_marking_distance:
             away_xy[i] += marking_factor * vec
 
+    # 4. PRESSING (Ball Chasing)
+    # Identify the N players closest to the ball
+    dist_to_ball = np.linalg.norm(away_xy[outfield_idx] - ball_pos, axis=1)
+    pressing_indices = outfield_idx[np.argsort(dist_to_ball)[:pressing_players]]
 
-    # ================
-    # 4) PRESSING (3 giocatori più vicini)
-    # ================
-    ball_dists = np.linalg.norm(away_xy[field_idx] - ball_pos, axis=1)
-    press = field_idx[np.argsort(ball_dists)[:pressing_players]]
-
-    for i in press:
+    for i in pressing_indices:
         away_xy[i] += pressing_factor * (ball_pos - away_xy[i])
 
-
-    # ================
-    # 5) PORTIERE (quasi fermo)
-    # ================
-    gk = away_xy[keeper_idx]
+    # 5. GOALKEEPER MOVEMENT
+    gk_pos = away_xy[keeper_idx]
+    # GK adjusts slightly if ball is deep in their half
     if ball_pos[0] > 0.80:
-        away_xy[keeper_idx] += keeper_factor * (ball_pos - gk)
+        away_xy[keeper_idx] += keeper_factor * (ball_pos - gk_pos)
 
-
-    # ================
-    # 6) CLIP CAMPO
-    # ================
+    # 6. BOUNDARY CLAMPING
     away_xy = np.clip(away_xy, 0, 1)
+    
+    # Update DataFrame
     away["x"], away["y"] = away_xy[:, 0], away_xy[:, 1]
 
     return away

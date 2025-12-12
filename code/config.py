@@ -22,7 +22,7 @@ PENALTY_W_PROXIMITY  = 50.0
 PENALTY_W_TRANSITION = 0.1
 PENALTY_W_ORDER      = 5.0
 
-# PHYSICS COSTS
+# PHYSICS COSTS PARAMETERS
 PASS_MAX_LEN = 0.45
 PASS_BLOCK_THRESHOLD = 0.03
 PASS_W_LONG = 1.5
@@ -36,40 +36,36 @@ PASS_TARGET_SCORE_DEF = 3.5
 
 
 # === WHEIGHTS CONFIGURATION FOR EACH PHASE ===
-# Se un peso è 0.0, l'obiettivo non viene calcolato per quella fase.
+# When set to 0.0, that objective doesn't contribute
 
 PHASE_WEIGHTS = {
-    "Fase difensiva": {
+    "Defensive phase": {
         # Obiettivi Difensivi
-        "W_MARKING":      45.0,   # Priorità: marcare
-        "W_COMPACTNESS":  5.0,   # Priorità: stare stretti
-        "W_LINE_HEIGHT":  4.0,    # Priorità: tenere la linea alta
-        "W_BALL_PRESS":   20.0,   # Priorità: pressare portatore
+        "W_MARKING":      45.0,
+        "W_COMPACTNESS":  5.0,
+        "W_LINE_HEIGHT":  4.0,
+        "W_BALL_PRESS":   20.0,
         
-        # Obiettivi Offensivi (Disattivati o irrilevanti)
-        "W_COVERAGE":     0.0,    # Non vogliamo allargarci a caso
-        "W_PASSING":      0.0,    # Non abbiamo la palla
-        "W_OFFSIDE":      0.0,     # Noi non andiamo in fuorigioco
+        "W_COVERAGE":     0.0,
+        "W_PASSING":      0.0,
+        "W_OFFSIDE":      0.0,
         "W_PREV_MARKING": 0.0
     },
     
-    "Possesso offensivo": {
-        # Obiettivi Offensivi
+    "Attacking possession": {
         "W_PASSING":        4.0, 
         "W_OFFSIDE":        100.0,
         "W_PREV_MARKING":   15.0,
         "W_COVERAGE":       34.0,
         "W_BALL_PRESS":     50.0,
         
-
-        # Obiettivi Difensivi (Disattivati)
+        # Defensive Objectives
         "W_MARKING":        0.0,
         "W_COMPACTNESS":    0.0,
         "W_LINE_HEIGHT":    2.0,
     },
     
-    "Possesso difensivo": {
-        # Fase di Costruzione
+    "Defensive possession": {
         "W_OFFSIDE": 100.0,
         "W_COVERAGE": 32.6387,
         "W_PASSING": 7.3722,

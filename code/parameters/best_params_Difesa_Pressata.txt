@@ -1,7 +1,7 @@
 # Parametri ottimizzati per scenario: Difesa_Pressata
-# Fase: Possesso difensivo
+# Fase: Defensive possession
 
-    "Possesso difensivo": 
+    "Defensive possession": 
         "W_COVERAGE": 1.0768,
         "W_PASSING": 37.5071,
         "W_BALL_PRESS": 69.7826,

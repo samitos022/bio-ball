@@ -50,34 +50,34 @@ def get_phase(row, team, period):
     if period == 1:
         if team == "Home":
             if row["Possession"] == team and row["Ball_x"] > 0.5:
-                return "Possesso offensivo"
+                return "Attacking possession"
             elif row["Possession"] == team and row["Ball_x"] <= 0.5:
-                return "Possesso difensivo"
+                return "Defensive possession"
             else:
-                return "Fase difensiva"
+                return "Defensive phase"
         elif team == "Away":
             if row["Possession"] == team and row["Ball_x"] < 0.5:
-                return "Possesso offensivo"
+                return "Attacking possession"
             elif row["Possession"] == team and row["Ball_x"] >= 0.5:
-                return "Possesso difensivo"
+                return "Defensive possession"
             else:
-                return "Fase difensiva"
+                return "Defensive phase"
 
     elif period == 2:
         if team == "Home":
             if row["Possession"] == team and row["Ball_x"] < 0.5:
-                return "Possesso offensivo"
+                return "Attacking possession"
             elif row["Possession"] == team and row["Ball_x"] >= 0.5:
-                return "Possesso difensivo"
+                return "Defensive possession"
             else:
-                return "Fase difensiva"
+                return "Defensive phase"
         elif team == "Away":
             if row["Possession"] == team and row["Ball_x"] > 0.5:
-                return "Possesso offensivo"
+                return "Attacking possession"
             elif row["Possession"] == team and row["Ball_x"] <= 0.5:
-                return "Possesso difensivo"
+                return "Defensive possession"
             else:
-                return "Fase difensiva"
+                return "Defensive phase"
 
     return None
 
@@ -109,7 +109,7 @@ def average_positions(match, tracking, team):
                 tracking.loc[mask, col] = 1 - tracking.loc[mask, col]
 
     results = {}
-    phases = ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]
+    phases = ["Attacking possession", "Defensive possession", "Defensive phase"]
 
     for phase in phases:
         phase_df = tracking[tracking["Phase"] == phase]
@@ -139,7 +139,7 @@ def average_ball_positions(tracking, team):
 
     results = {}
 
-    for phase in ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]:
+    for phase in ["Attacking possession", "Defensive possession", "Defensive phase"]:
         phase_df = tracking[tracking["Phase"] == phase]
 
         if phase_df.empty:
@@ -187,13 +187,3 @@ def plot_formation(positions, title, team='Home', color='red'):
 
     ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
     plt.show()
-
-# try:
-#     tracking_home = load_and_clean_metrica_tracking('code/data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
-#     tracking_away = load_and_clean_metrica_tracking('code/data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
-#     print("[SUCCESS] Dati caricati e puliti.")
-#     match = load_match('code/data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
-#     print("[SUCCESS] Partita caricata.")
-# except Exception as e:
-#     print(f"[ERROR] Impossibile caricare i dati: {e}")
-#     exit()

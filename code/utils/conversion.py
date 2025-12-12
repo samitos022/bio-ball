@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 def dict_to_array(position_dict, player_order=None):
-    phases = ["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]
+    phases = ["Attacking possession", "Defensive possession", "Defensive phase"]
     vector = []
 
     for phase in phases:
@@ -18,7 +18,7 @@ def dict_to_array(position_dict, player_order=None):
 
     return np.array(vector)
 
-def array_to_dict(vector, player_order, phases=["Possesso offensivo", "Possesso difensivo", "Fase difensiva"]):
+def array_to_dict(vector, player_order, phases=["Attacking possession", "Defensive possession", "Defensive phase"]):
     positions = {}
     n_players = len(player_order)
     data = vector.reshape(len(phases), n_players, 2)

@@ -8,10 +8,10 @@ from utils.load_data import load_match
 try:
     tracking_home = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Home_Team.csv')
     tracking_away = load_and_clean_metrica_tracking('data/metrica/sample_game_1/Sample_Game_1_RawTrackingData_Away_Team.csv')
-    print("[SUCCESS] Dati caricati e puliti.")
+    print("[SUCCESS] Data loaded and cleaned.")
     game = load_match('data/metrica/sample_game_1/Sample_Game_1_RawEventsData.csv')
 except Exception as e:
-    print(f"[ERROR] Impossibile caricare i dati: {e}")
+    print(f"[ERROR] Impossible to load data: {e}")
     exit()
 
 
@@ -34,7 +34,7 @@ ball_scatter = pitch.scatter(ball_pos['Ball_x'], ball_pos['Ball_y'], ax=ax, s=15
 title = ax.set_title("Frame 0", color='white', fontsize=16)
 
 def update(frame_num):
-    """Questa funzione viene chiamata per ogni frame dell'animazione."""
+    """This function is called for each frame of the animation."""
     current_frame = frame_num + 1 
     
     frame_home = tracking_home.loc[tracking_home['Frame'] == current_frame]

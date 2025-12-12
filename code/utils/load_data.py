@@ -1,7 +1,7 @@
 import pandas as pd
 
 def load_and_clean_metrica_tracking(filepath):
-    """Carica e pulisce i dati di tracking di Metrica."""
+    """Loads and cleans tracking data from Metrica."""
     df = pd.read_csv(filepath, skiprows=2, low_memory=False)
     new_cols = []
     for col in df.columns[:3]: new_cols.append(col.strip())
