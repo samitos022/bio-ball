@@ -173,7 +173,7 @@ The project supports configuration via CLI arguments.
 | ------------ | ------------------------------- | ------------------------------------------ |
 | `--mode`     | Optimization algorithm          | `cma_static`, `cma_dynamic`, `de`          |
 | `--scenario` | Tactical scenario configuration | optional                                   |
-| `--phase`    | Phase of play                   | `op (Offensive possession)`, `dp (Defensive possession)`, `d (Defensive phase)` |
+| `--phase`    | Phase of play                   | `pa (Attaccking possession)`, `pd (Defensive possession)`, `fd (Defensive phase)` |
 
 ---
 
@@ -182,19 +182,19 @@ The project supports configuration via CLI arguments.
 #### Static CMA-ES
 
 ```bash
-python main.py --mode cma_static --phase op
+python main.py --mode cma_static --phase pa
 ```
 
 #### Dynamic CMA-ES
 
 ```bash
-python main.py --mode cma_dynamic --phase op
+python main.py --mode cma_dynamic --phase pa
 ```
 
 #### Differential Evolution
 
 ```bash
-python main.py --mode de --phase op
+python main.py --mode de --phase pa
 ```
 ---
 
