@@ -33,7 +33,7 @@ OBJECTIVE_DESCRIPTIONS = {
     "Constraints (Hard)": "Hard constraints: player collisions, offside, field boundaries",
     "Coverage": "Weighted coverage of tactical field zones (central > lateral)",
     "Passing Lanes": "Quality and number of available passing options",
-    "Offside": "Avoid offside positions in offensive phase",
+    "Offside": "Avoid offside positions in Attacking phase",
     "Marking": "Individual coverage of opponent movement players (excluding goalkeeper)",
     "Compactness": "Team compactness, average distance from centroid (no GK)",
     "Line Height": "Dynamic and elastic defensive line positioning",
@@ -116,7 +116,7 @@ class BioBallAppFinal:
         # Game Phase
         ttk.Label(self.sidebar, text="Game Phase:").pack(anchor="w")
         phases = [
-            ("Offensive Possession", "Offensive Possession"),
+            ("Attacking Possession", "Attacking Possession"),
             ("Defensive Possession", "Defensive Possession"),
             ("Defensive Phase", "Defensive Phase")
         ]
@@ -362,7 +362,7 @@ class BioBallAppFinal:
             
             # Map English phases to Italian (backend expects Italian)
             phase_map = {
-                "Offensive Possession": "Possesso offensivo",
+                "Attacking Possession": "Possesso offensivo",
                 "Defensive Possession": "Possesso difensivo",
                 "Defensive Phase": "Fase difensiva"
             }
