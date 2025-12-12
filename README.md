@@ -1,6 +1,6 @@
 # 📘 BIO-BALL (Evolutionary Football Formation Optimization)
 
-BIO-BALL is a **university research project** focused on applying **evolutionary optimization algorithms** to football tactical analysis.
+BIO-BALL is a **university project** focused on applying **evolutionary optimization algorithms** to football tactical analysis.
 The objective is to automatically compute **optimal team formations** across different **phases of play**, starting from real tracking data.
 
 Instead of relying on static positional averages, the project explores how evolutionary optimization can **reshape a team’s spatial organization** by incorporating tactical constraints, passing quality, ball access, offside logic, and defensive coverage.
