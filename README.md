@@ -13,9 +13,9 @@ The project is built around **CMA-ES (Covariance Matrix Adaptation Evolution Str
 
 The optimizer can be applied to different game contexts:
 
-* **Offensive possession** – structured attacking shape and passing options
+* **Attacking possession** – structured attacking shape and passing options
 * **Defensive possession** – compactness, coverage, and marking
-* **Non-possession / pure defensive phase** – block positioning and space denial
+* **Defensive phase** – block positioning and space denial
 
 Each phase produces a distinct reference formation and optimization objective.
 
