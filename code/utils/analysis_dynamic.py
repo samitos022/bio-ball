@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from mplsoccer import Pitch, VerticalPitch
 import os
 
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
+
 def possessions(match):
     """Parses match events to determine which team had possession for each frame."""
     possessions_dict = {}
@@ -104,7 +107,7 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     """Plots formation, ball, and opponents on a horizontal pitch."""
     pitch = Pitch(pitch_type='metricasports', pitch_length=106, pitch_width=68, pitch_color='#22312b', line_color='#c7d5cc')
     fig, ax = pitch.draw(figsize=(12, 8))
-    fig.set_facecolor('#22312b')
+    fig.set_facecolor('white')
 
     # Home Team
     if isinstance(positions, dict):
@@ -124,21 +127,21 @@ def plot_formation_with_ball_and_obstacles(positions, title, team='Home', color=
     if obstacles is not None:
         obs_x = obstacles["x"].values if hasattr(obstacles, "columns") else obstacles[:, 0]
         obs_y = obstacles["y"].values if hasattr(obstacles, "columns") else obstacles[:, 1]
-        pitch.scatter(obs_x, obs_y, ax=ax, s=200, c='#555555', edgecolors='#888888', alpha=0.7, zorder=2, label='Opponent')
+        pitch.scatter(obs_x, obs_y, ax=ax, s=200, c='#888888', edgecolors='#444444', alpha=0.85, zorder=2, label='Opponent')
 
     # Ball
     if ball_position is not None:
-        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='yellow', edgecolors='black', lw=1.5, zorder=5, label='Ball')
+        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='#f5c518', edgecolors='white', lw=1.5, zorder=5, label='Ball')
         
-    ax.legend(facecolor='#22312b', edgecolor='white', labelcolor='white', loc='upper right')
-    ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=20)
+    ax.legend(facecolor='#22312b', edgecolor='#c7d5cc', labelcolor='white', loc='upper right', fontsize=11, markerscale=0.6)
+    ax.set_title(f"{team} – {title}", color='#2a2a2a', fontsize=18, pad=20)
     plt.show()
 
 def plot_formation_vertical(positions, title, team='Home', color='red', ball_position=None, obstacles=None, save_path=None):
     """Plots formation on a vertical pitch (useful for reports)."""
     pitch = VerticalPitch(pitch_type='metricasports', pitch_length=106, pitch_width=68, pitch_color='#22312b', line_color='#c7d5cc')
     fig, ax = pitch.draw(figsize=(8, 12))
-    fig.set_facecolor('#22312b')
+    fig.set_facecolor('white')
 
     # Home Team
     if isinstance(positions, dict):
@@ -152,14 +155,27 @@ def plot_formation_vertical(positions, title, team='Home', color='red', ball_pos
     if obstacles is not None:
         obs_x = obstacles["x"].values if hasattr(obstacles, "columns") else obstacles[:, 0]
         obs_y = obstacles["y"].values if hasattr(obstacles, "columns") else obstacles[:, 1]
-        pitch.scatter(obs_x, obs_y, ax=ax, c='#555555', alpha=0.7, edgecolors='#888888', s=200, zorder=2, label='Opponents')
+        pitch.scatter(obs_x, obs_y, ax=ax, c='#888888', alpha=0.85, edgecolors='#444444', s=200, zorder=2, label='Opponents')
 
     # Ball
     if ball_position is not None:
-        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='yellow', edgecolors='black', lw=1.5, zorder=5, label='Ball')
+        pitch.scatter(ball_position[0], ball_position[1], ax=ax, s=150, c='#f5c518', edgecolors='white', lw=1.5, zorder=5, label='Ball')
 
-    ax.legend(facecolor='#22312b', edgecolor='white', labelcolor='white', loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=3)
-    ax.set_title(f"{team} – {title}", color='white', fontsize=18, pad=40)
+    ax.legend(
+        facecolor='#22312b',
+        edgecolor='#c7d5cc',
+        labelcolor='white',
+        loc='lower center',
+        bbox_to_anchor=(0.5, -0.08),
+        ncol=3,
+        fontsize=12,
+        markerscale=0.7,
+        handletextpad=0.5,
+        columnspacing=1.0,
+        borderpad=0.8,
+        framealpha=0.95,
+    )
+    ax.set_title(f"{team} – {title}", color='#2a2a2a', fontsize=14, pad=12)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -172,19 +188,19 @@ def plot_convergence(history, save_path=None):
     """Plots the optimization fitness cost over generations."""
     plt.figure(figsize=(10, 6))
     ax = plt.gca()
-    ax.set_facecolor('#22312b')
-    plt.gcf().set_facecolor('#22312b')
+    ax.set_facecolor('white')
+    plt.gcf().set_facecolor('white')
     
-    plt.plot(history, color='#00ff85', linewidth=2.5, label='Best Cost per Generation')
-    plt.title('Optimization Convergence', color='white', fontsize=16, pad=15)
-    plt.xlabel('Generations', color='white', fontsize=12)
-    plt.ylabel('Cost Function (Minimization)', color='white', fontsize=12)
-    plt.grid(color='white', alpha=0.1, linestyle='--')
-    plt.tick_params(colors='white')
+    plt.plot(history, color='#0077b6', linewidth=2.5, label='Best Cost per Generation')
+    plt.title('Optimization Convergence', color='#2a2a2a', fontsize=16, pad=15)
+    plt.xlabel('Generations', color='#2a2a2a', fontsize=12)
+    plt.ylabel('Cost Function (Minimization)', color='#2a2a2a', fontsize=12)
+    plt.grid(color='#cccccc', alpha=0.6, linestyle='--')
+    plt.tick_params(colors='#2a2a2a')
     
-    for spine in ax.spines.values(): spine.set_color('white')
+    for spine in ax.spines.values(): spine.set_color('#aaaaaa')
 
-    plt.legend(facecolor='#22312b', edgecolor='white', labelcolor='white')
+    plt.legend(facecolor='white', edgecolor='#aaaaaa', labelcolor='#2a2a2a')
     plt.tight_layout()
 
     if save_path:

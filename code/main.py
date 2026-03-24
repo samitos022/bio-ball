@@ -125,7 +125,7 @@ def main():
     # A. Convergence Plot
     plot_convergence(
         cost_history, 
-        os.path.join(output_folder, f"convergence_{timestamp}.png")
+        os.path.join(output_folder, f"convergence_{timestamp}.pdf")
     )
 
     # B. Plot Horizontal
@@ -146,7 +146,7 @@ def main():
         color="blue",
         ball_position=data["ball_position"],
         obstacles=final_obstacles,
-        save_path=os.path.join(output_folder, f"formation_{timestamp}.png")
+        save_path=os.path.join(output_folder, f"formation_{timestamp}.pdf")
     )
     
     print(f"Graphs stored in: {output_folder}")
