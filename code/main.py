@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import time
 
 # Utils
 from utils.setup import setup_scenario
@@ -28,7 +29,7 @@ def main():
     parser.add_argument("--scenario", type=str, default=None,
                         help="Name of the scenario in ground_truth.json (overrides historical data)")
 
-    parser.add_argument("--phase", type=str, default="Attacking possession",
+    parser.add_argument("--phase", type=str, default="pa",
                         choices=["pa", "pd", "dp"],
                         help="Game phase to optimize")
 
@@ -56,6 +57,8 @@ def main():
     final_obstacles = None
     best_vec = None
     cost_history = []
+
+    start_time = time.perf_counter()
 
     # --- 1: CMA-ES STATIC ---
     if args.mode == "cma_static":
@@ -103,6 +106,9 @@ def main():
         )
         final_obstacles = final_away_df[["x", "y"]].to_numpy()
 
+    end_time = time.perf_counter()
+    execution_time = end_time - start_time
+
     print(f"\n[RESULT] Optimization finished.")
 
     # 4. Detailed Report (Catturiamo le metriche nel dizionario)
@@ -146,6 +152,7 @@ def main():
         "Algorithm": args.mode,
         "Scenario": scenario_label,
         "Phase": phase_home,
+        "Execution_Time_sec": round(execution_time, 3),
         "Total_Fitness": fitness_metrics.get("Total_Fitness", 0)
     }
     
