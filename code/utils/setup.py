@@ -42,7 +42,7 @@ def setup_scenario(game_dir=DEFAULT_DATA_DIR,
 
     # 2. OVERRIDE USING SCENARIO JSON
     if scenario_name:
-        json_path = "data/formations/ground_truth.json"
+        json_path = "code/data/formations/ground_truth.json"
         try:
             with open(json_path, "r") as f:
                 full_db = json.load(f)
