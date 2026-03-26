@@ -105,8 +105,8 @@ def main():
 
     print(f"\n[RESULT] Optimization finished.")
 
-    # 4. Detailed Report
-    print_fitness_breakdown(
+    # 4. Detailed Report (Catturiamo le metriche nel dizionario)
+    fitness_metrics = print_fitness_breakdown(
         formation_data=best_vec,
         player_names=data["starters_home"],
         obstacles=final_obstacles,
@@ -115,20 +115,57 @@ def main():
         phase_name=phase_home
     )
     
-    # 5. Results and Plots
+    # 5. Salvataggio Organizzato per il Paper
     output_folder = f"results_plots/{args.mode}_{phase_home.replace(' ', '_')}"
     os.makedirs(output_folder, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     best_fmt_df = flat_to_formation(best_vec, data["starters_home"])
 
-    # A. Convergence Plot
-    plot_convergence(
-        cost_history, 
-        os.path.join(output_folder, f"convergence_{timestamp}.pdf")
-    )
+    # A. FILE SINGOLO DEL TEST (Posizioni + Metriche Principali)
+    # Creiamo una copia del dataframe delle posizioni
+    run_report_df = best_fmt_df.copy()
+    
+    # Aggiungiamo le metriche come nuove colonne (si ripeteranno per ogni riga, è normale nei CSV)
+    run_report_df['Total_Fitness'] = fitness_metrics.get("Total_Fitness", 0)
+    
+    # Filtriamo per salvare solo i valori "Raw" degli obiettivi (più utili per l'analisi)
+    for key, value in fitness_metrics.items():
+        if "_Raw" in key:
+            run_report_df[key] = value
 
-    # B. Plot Horizontal
+    csv_run_path = os.path.join(output_folder, f"run_report_{timestamp}.csv")
+    run_report_df.to_csv(csv_run_path, index_label="Player")
+
+    # B. MASTER LOG (Meta-dati + Fitness + Coordinate orizzontali)
+    master_log_path = "results_plots/master_log_experiments.csv"
+    
+    # Costruiamo la riga base
+    log_row = {
+        "Timestamp": timestamp,
+        "Algorithm": args.mode,
+        "Scenario": scenario_label,
+        "Phase": phase_home,
+        "Total_Fitness": fitness_metrics.get("Total_Fitness", 0)
+    }
+    
+    # Aggiungiamo le coordinate X e Y di OGNI giocatore come nuove colonne
+    # Es: Player1_X, Player1_Y, Player2_X...
+    for player_name, row in best_fmt_df.iterrows():
+        log_row[f"{player_name}_X"] = row['x']
+        log_row[f"{player_name}_Y"] = row['y']
+        
+    log_df = pd.DataFrame([log_row])
+    
+    # Salvataggio robusto: se il file esiste, aggiungiamo in coda
+    if not os.path.isfile(master_log_path):
+        log_df.to_csv(master_log_path, index=False)
+    else:
+        log_df.to_csv(master_log_path, mode='a', header=False, index=False)
+
+    # 6. PLOTS (Manteniamo solo l'immagine finale statica)
+
+    # Plot Orizzontale (Interattivo a schermo)
     plot_formation_with_ball_and_obstacles(
         best_fmt_df, 
         f"Optimized Formation - {phase_home}",
@@ -138,7 +175,7 @@ def main():
         obstacles=final_obstacles,
     )
 
-    # C. Plot Vertical
+    # Plot Verticale (Salvato su PDF per il paper)
     plot_formation_vertical(
         best_fmt_df,
         f"{args.mode.upper()} Optimized Formation - {phase_home}",
@@ -149,8 +186,10 @@ def main():
         save_path=os.path.join(output_folder, f"formation_{timestamp}.pdf")
     )
     
-    print(f"Graphs stored in: {output_folder}")
+    print(f"File salvati: {csv_run_path}")
+    print(f"Master Log aggiornato in: {master_log_path}")
 
 if __name__ == "__main__":
     main()
+    # (Opzionale: togli create_evolution_gif() se non ti serve più l'animazione)
     create_evolution_gif()
