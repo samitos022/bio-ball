@@ -170,9 +170,15 @@ def main():
     else:
         log_df.to_csv(master_log_path, mode='a', header=False, index=False)
 
-    # 6. PLOTS (Manteniamo solo l'immagine finale statica)
+    # 6. PLOTS
 
-    # Plot Orizzontale (Interattivo a schermo)
+    # A. Convergence Plot
+    plot_convergence(
+        cost_history, 
+        os.path.join(output_folder, f"convergence_{timestamp}.pdf")
+    )
+
+    # B. Plot Orizzontale
     plot_formation_with_ball_and_obstacles(
         best_fmt_df, 
         f"Optimized Formation - {phase_home}",
@@ -182,7 +188,7 @@ def main():
         obstacles=final_obstacles,
     )
 
-    # Plot Verticale (Salvato su PDF per il paper)
+    # C. Plot Verticale
     plot_formation_vertical(
         best_fmt_df,
         f"{args.mode.upper()} Optimized Formation - {phase_home}",
