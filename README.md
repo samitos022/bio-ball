@@ -173,7 +173,7 @@ The project supports configuration via CLI arguments.
 | ------------ | ------------------------------- | ------------------------------------------ |
 | `--mode`     | Optimization algorithm          | `cma_static`, `cma_dynamic`, `de`          |
 | `--scenario` | Tactical scenario configuration | optional                                   |
-| `--phase`    | Phase of play                   | `pa (Attaccking possession)`, `pd (Defensive possession)`, `fd (Defensive phase)` |
+| `--phase`    | Phase of play                   | `pa (Attaccking possession)`, `pd (Defensive possession)`, `dp (Defensive phase)` |
 
 ---
 
